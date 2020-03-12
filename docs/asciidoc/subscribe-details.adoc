@@ -3,19 +3,24 @@
 This section contains minimal examples of each of the five signatures for the `subscribe`
 method. The following code shows an example of the basic method with no arguments:
 
+本节包含该subscribe 方法的五个签名中每个签名的最少示例。以下代码显示了不带参数的基本方法的示例：
+
 ====
 [source,java]
 ----
 Flux<Integer> ints = Flux.range(1, 3); <1>
 ints.subscribe(); <2>
 ----
-<1> Set up a `Flux` that produces three values when a subscriber attaches.
-<2> Subscribe in the simplest way.
+<1> 设置一个Flux在订阅者加入时产生三个值的。以最简单的方式订阅.
+<2> 以最简单的方式订阅.
 ====
 
 The preceding code produces no visible output, but it does work. The `Flux` produces
 three values. If we provide a lambda, we can make the values visible. The next example
 for the `subscribe` method shows one way to make the values appear:
+
+前面的代码没有产生可见的输出，但是它确实起作用。将Flux产生三个值。如果提供lambda，则可以使值可见。
+该subscribe方法的下一个示例显示了一种使值出现的方法
 
 ====
 [source,java]
@@ -23,8 +28,8 @@ for the `subscribe` method shows one way to make the values appear:
 Flux<Integer> ints = Flux.range(1, 3); <1>
 ints.subscribe(i -> System.out.println(i)); <2>
 ----
-<1> Set up a `Flux` that produces three values when a subscriber attaches.
-<2> Subscribe with a subscriber that will print the values.
+<1> 设置一个Flux在订阅者加入时产生三个值的.
+<2> 用将打印值的订阅者订阅.
 ====
 
 The preceding code produces the following output:
@@ -41,6 +46,8 @@ The preceding code produces the following output:
 To demonstrate the next signature, we intentionally introduce an error, as
 shown in the following example:
 
+为了演示下一个签名，我们有意引入一个错误，如以下示例所示
+
 ====
 [source, java]
 ----
@@ -52,15 +59,17 @@ Flux<Integer> ints = Flux.range(1, 4) <1>
 ints.subscribe(i -> System.out.println(i), <5>
       error -> System.err.println("Error: " + error));
 ----
-<1> Set up a Flux that produces four values when a subscriber attaches.
-<2> We need a map so that we can handle some values differently.
-<3> For most values, return the value.
-<4> For one value, force an error.
-<5> Subscribe with a subscriber that includes an error handler.
+<1> 设置一个Flux，当订阅者连接时它会产生四个值.
+<2> 我们需要一个map，以便我们可以不同地处理某些值.
+<3> 对于大多数值，请返回该值.
+<4> 对于一个值，强制执行错误.
+<5> 用包含错误处理程序的订阅者进行Subscribe.
 ====
 
 We now have two lambda expressions: one for the content we expect and one for
 errors. The preceding code produces the following output:
+
+现在，我们有两个lambda表达式：一个用于期望的内容，另一个用于错误。上面的代码产生以下输出：
 
 ====
 [source]
@@ -75,6 +84,8 @@ Error: java.lang.RuntimeException: Got to 4
 The next signature of the `subscribe` method includes both an error handler and
 a handler for completion events, as shown in the following example:
 
+该subscribe方法的下一个签名包括错误处理程序和完成事件处理程序，如以下示例所示：
+
 ====
 [source,java]
 ----
@@ -83,17 +94,21 @@ ints.subscribe(i -> System.out.println(i),
     error -> System.err.println("Error " + error),
     () -> System.out.println("Done")); <2>
 ----
-<1> Set up a Flux that produces four values when a subscriber attaches.
-<2> Subscribe with a Subscriber that includes a handler for completion events.
+<1> 设置一个Flux，当订阅者连接时它会产生四个值.
+<2> 使用包括完成事件处理程序的订阅服务器进行订阅.
 ====
 
 Error signals and completion signals are both terminal events and are exclusive of one
 another (you never get both). To make the completion consumer work, we must take care not
 to trigger an error.
 
+错误信号和完成信号都是终端事件，并且彼此互斥（您永远不会都得到）。为了使完成消费者工作，我们必须注意不要触发错误
+
 The completion callback has no input, as represented by an empty pair of
 parentheses: It matches the `run` method in the `Runnable` interface. The preceding code
 produces the following output:
+
+完成回调没有输入，由一对空括号表示：它与接口中的run方法匹配Runnable。上面的代码产生以下输出：
 
 ====
 [source]
@@ -108,8 +123,13 @@ Done
 
 The last signature of the `subscribe` method includes a `Consumer<Subscription>`.
 
+该subscribe方法的最后一个签名包括Consumer<Subscription>。
+
 NOTE: That variant requires you to do something with the `Subscription` (perform a
 `request(long)` on it or `cancel()` it). Otherwise the `Flux` hangs.
+
+
+NOTE: 该变体要求您对Subscription进行某些操作（request(long)或 cancel()）。否则Flux会挂起。
 
 The following example shows the last signature of the `subscribe` method:
 
@@ -122,8 +142,7 @@ ints.subscribe(i -> System.out.println(i),
     () -> System.out.println("Done"),
     sub -> sub.request(10)); <1>
 ----
-<1> When we subscribe we receive a `Subscription`. Signal that we want up to `10`
-elements from the source (which will actually emit 4 elements and complete).
+<1> 当我们订阅时，我们会收到Subscription。表示我们要从源头获取 10 个元素（实际上将发出4个元素并完成).
 ====
 
 === Cancelling a `subscribe()` with Its `Disposable`
@@ -132,10 +151,16 @@ All these lambda-based variants of `subscribe()` have a `Disposable` return type
 In this case, the `Disposable` interface represents the fact that the subscription
 can be _cancelled_, by calling its `dispose()` method.
 
+所有这些基于lambda的变体subscribe()都具有Disposable返回类型。
+在这种情况下，该Disposable接口表示可以实现通过调用方法dispose()来取消订阅。
+
 For a `Flux` or `Mono`, cancellation is a signal that the source should stop
 producing elements. However, it is NOT guaranteed to be immediate: Some sources
 might produce elements so fast that they could complete even before receiving the
 cancel instruction.
+
+对于Flux或Mono，取消表示信号源应停止产生元素。
+但是，并不能保证立即执行：某些源可能会产生如此快的元素，以至于甚至在接收到取消指令之前它们也可以完成。
 
 Some utilities around `Disposable` are available in the `Disposables` class.
 Among these, `Disposables.swap()` creates a `Disposable` wrapper that lets
@@ -144,17 +169,28 @@ for instance, in a UI scenario where you want to cancel a request and replace it
 with a new one whenever the user clicks on a button. Disposing the wrapper itself
 closes it. Doing so disposes the current concrete value and all future attempted replacements.
 
+在Disposable类中提供了一些实用程序。
+在其中，Disposables.swap()创建一个Disposable包装器，使您可以自动取消和替换具体的Disposable。
+例如，这在UI场景中很有用，在UI场景中，您希望在用户单击按钮时取消请求并将其替换为新请求。
+包装器本身会将其自动关闭。这样做会处置当前的具体的值以及将来所有尝试的替代品。
+
 Another interesting utility is `Disposables.composite(...)`. This composite
 lets you collect several `Disposable` -- for instance, multiple in-flight requests
 associated with a service call -- and dispose all of them at once later on.
 Once the composite's `dispose()` method has been called, any attempt to add
 another `Disposable` immediately disposes it.
 
+另一个有趣的实用程序是Disposables.composite(…​)。通过此组合，您可以收集多个Disposable （例如，与服务调用关联的多个进行中的请求），并在以后一次处理所有这些请求。
+一旦复合方法调用了dispose()，任何添加其他Disposable方法的尝试都会立即丢弃掉。
+
 === An Alternative to Lambdas: `BaseSubscriber`
 
 There is an additional `subscribe` method that is more generic and takes a full-blown
 `Subscriber` rather than composing one out of lambdas. In order to help with writing
 such a `Subscriber`, we provide an extendable class called `BaseSubscriber`.
+
+还有一种subscribe更通用的方法，它采用成熟的方法， 使用Subscriber而不是用lambda组成一个方法。
+为了帮助编写这样的 Subscriber，我们提供了一个称为的可扩展的类叫 BaseSubscriber。
 
 WARNING: Instances of `BaseSubscriber` (or subclasses of it) are *single-use*,
 meaning that a `BaseSubscriber` cancels its subscription to the first `Publisher` if it
@@ -164,8 +200,14 @@ the `onNext` method of a `Subscriber` must not be called in parallel.
 As a result, anonymous implementations are fine only if they are declared directly within
 the call to `Publisher#subscribe(Subscriber)`.
 
+WARNING: BaseSubscriber（或它的子类）的 实例是一次性的，这意味着如果一个 BaseSubscriber 对第二个 Publisher 就行订阅，则它会取消其对第一个的Publisher的订阅。
+那是因为两次使用一个实例会违反反应式流规则，即不能并行调用Subscriber的onNext方法。
+因此，只有在对的调用中直接声明了匿名实现时，匿名实现才可以Publisher#subscribe(Subscriber)。
+
 Now we can implement one of these. We call it a `SampleSubscriber`. The following
 example shows how it would be attached to a `Flux`:
+
+现在我们可以实现其中之一。我们称它为SampleSubscriber。以下示例显示了如何将其附加到Flux：
 
 ====
 [source,java]
@@ -182,6 +224,8 @@ ints.subscribe(ss);
 
 The following example shows what `SampleSubscriber` could look like, as a minimalistic
 implementation of a `BaseSubscriber`:
+
+以下示例显示了SampleSubscriber作为一个BaseSubscriber的简约实现：
 
 ====
 [source,java]
@@ -213,11 +257,18 @@ overridden to tune the subscriber's behavior. By default, it triggers an unbound
 request and behaves exactly as `subscribe()`. However, extending `BaseSubscriber` is
 much more useful when you want a custom request amount.
 
+这SampleSubscriber类是扩展BaseSubscriber，在Reactor中，推荐使用Subscribers的抽象类SampleSubscriber，去实现自定义功能。
+该类提供了可以被覆盖的hook，以调整订阅者的行为。默认情况下，它会触发一个无限制的请求，并且行为与完全相同subscribe()。
+但是，当您需要自定义请求量时，BaseSubscriber的扩展功能会更加有用。
+
 For a custom request amount, the bare minimum is to implement `hookOnSubscribe(Subscription subscription)`
 and `hookOnNext(T value)`, as we did. In our case, the `hookOnSubscribe` method
 prints a statement to standard out and makes the first request. Then the `hookOnNext`
 method prints a statement and performs additional requests, one request
 at a time.
+
+对于自定义请求量，最起码的是实施hookOnSubscribe(Subscription subscription) 和hookOnNext(T value)，就像我们所做的那样。
+在我们的例子中，该hookOnSubscribe方法输出标准声明并发出第一个请求。然后，该hookOnNext 方法打印一条语句并执行其他请求，一次执行一个请求。
 
 The `SampleSubscriber` class produces the following output:
 
@@ -235,11 +286,19 @@ Subscribed
 `BaseSubscriber` also offers a `requestUnbounded()` method to switch to unbounded mode
 (equivalent to `request(Long.MAX_VALUE)`), as well as a `cancel()` method.
 
+BaseSubscriber还提供了requestUnbounded()一种切换到无界模式的方法（等效于request(Long.MAX_VALUE)），以及一种cancel()方法。
+
 It also has additional hooks: `hookOnComplete`, `hookOnError`, `hookOnCancel`, and `hookFinally`
 (which is always called when the sequence terminates, with the type of termination passed
 in as a `SignalType` parameter)
+
+它还具有另外的钩：hookOnComplete，hookOnError，hookOnCancel，和hookFinally （其总是在序列终止时调用，并在序列通过后，传入类型为SignalType的参数）
 
 NOTE: You almost certainly want to implement the `hookOnError`, `hookOnCancel`, and
 `hookOnComplete` methods. You may also want to implement the `hookFinally` method.
 `SampleSubscribe` is the absolute minimum implementation of a `Subscriber` _that performs
 bounded requests_.
+
+
+NOTE: 你几乎可以肯定要实现的hookOnError，hookOnCancel和 hookOnComplete方法。
+您可能还想实现该hookFinally方法。 SampleSubscribe是Subscriber 执行受限请求的的绝对最小的实现。

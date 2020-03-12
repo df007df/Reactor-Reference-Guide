@@ -4,10 +4,15 @@
 The Reactor project main artifact is `reactor-core`, a reactive library that focuses on
 the Reactive Streams specification and targets Java 8.
 
+Reactor项目的主要工件是reactor-core一个反应式库，该库侧重于Reactive Streams规范，并针对Java 8。
+
 Reactor introduces composable reactive types that implement `Publisher` but also provide
 a rich vocabulary of operators: `Flux` and `Mono`. A `Flux` object
 represents a reactive sequence of 0..N items, while a `Mono` object represents a
 single-value-or-empty (0..1) result.
+
+Reactor引入了可实现的可反应类型，这些可实现Publisher但也提供了丰富的运算符词汇：Flux和Mono。
+Flux对象表示的0..N项的反应序列，而一个Mono对象表示单值或空（0..1）的结果。
 
 This distinction carries a bit of semantic information into the type, indicating the
 rough cardinality of the asynchronous processing. For instance, an HTTP request produces
@@ -16,9 +21,16 @@ the result of such an HTTP call as a `Mono<HttpResponse>` thus makes more sense 
 expressing it as a `Flux<HttpResponse>`, as it offers only operators that are relevant to
 a context of zero items or one item.
 
+这种区别在类型中包含了一些语义信息，表明了异步处理的粗略基数。
+例如，一个HTTP请求仅产生一个响应，因此进行count操作没有太大意义。
+因此，将HTTP调用的结果表示为 Mono<HttpResponse>比将其表示为Flux<HttpResponse>更有意义，因为它仅提供与零项或一个项的上下文相关的运算符。
+
 Operators that change the maximum cardinality of the processing also switch to the
 relevant type. For instance, the `count` operator exists in `Flux`, but it returns a
 `Mono<Long>`.
+
+更改处理最大基数的运算符也将切换到相关类型。例如，count运算符存在于中Flux，但返回 Mono<Long>。
+
 
 [[flux]]
 == `Flux`, an Asynchronous Sequence of 0-N Items
@@ -32,12 +44,20 @@ emitted items, optionally terminated by either a completion signal or an error.
 As in the Reactive Streams spec, these three types of signal translate to calls to a downstream
 Subscriber's `onNext`, `onComplete`, and `onError` methods.
 
+Flux<T>是Publisher<T>代表0到N个发射项目的异步序列的标准，可以选择通过完成信号或错误终止。
+如反应式流规范中，这三种类型的信号转换为呼叫到下游Subscriber的onNext，onComplete和onError方法。
+
 With this large scope of possible signals, `Flux` is the general-purpose reactive type.
 Note that all events, even terminating ones, are optional: no `onNext` event but an
 `onComplete` event represents an _empty_ finite sequence, but remove the `onComplete` and
 you have an _infinite_ empty sequence (not particularly useful, except for tests around cancellation).
 Similarly, infinite sequences are not necessarily empty. For example, `Flux.interval(Duration)`
 produces a `Flux<Long>` that is infinite and emits regular ticks from a clock.
+
+
+在这么大范围的可能信号中，Flux是通用信号类型。
+请注意，所有事件，甚至是终止事件，都是可选的：没有onNext事件，但一个 onComplete事件表示一个空的有限序列，但是删除onComplete，您将获得一个无限的空序列（除了取消测试外，它不是特别有用）。
+同样，无限序列不一定为空。例如，Flux.interval(Duration) 产生一个Flux<Long>无限的并且从时钟发出规则的滴答声。
 
 [[mono]]
 == `Mono`, an Asynchronous 0-1 Result
@@ -49,23 +69,35 @@ image::https://raw.githubusercontent.com/reactor/reactor-core/v3.0.7.RELEASE/src
 A `Mono<T>` is a specialized `Publisher<T>` that emits at most one item and then
 (optionally) terminates with an `onComplete` signal or an `onError` signal.
 
+Mono<T>是一个专门的Publisher<T>，最多发出一个项目，
+然后（可选）以一个onComplete信号或一个onError信号终止。
+
 It offers only a subset of the operators that are available for a `Flux`, and
 some operators (notably those that combine the `Mono` with another `Publisher`)
 switch to a `Flux`.
 For example, `Mono#concatWith(Publisher)` returns a `Flux` while `Mono#then(Mono)`
 returns another `Mono`.
 
+它仅提供可用于Flux的运算符的一个子集，而某些运算符（特别是那些Mono与另一个结合的运算符Publisher）切换到Flux。
+例如，Mono#concatWith(Publisher)返回Flux一会儿Mono#then(Mono) 返回另一个Mono。
+
 Note that you can use a `Mono` to represent no-value asynchronous processes that only
 have the concept of completion (similar to a `Runnable`). To create one, you can use an empty
 `Mono<Void>`.
+
+请注意，您可以使用 Mono表示仅具有完成概念的无值异步流程（类似于Runnable）。要创建一个，您可以使用empty Mono<Void>。
 
 == Simple Ways to Create a Flux or Mono and Subscribe to It
 
 The easiest way to get started with `Flux` and `Mono` is to use one of the numerous
 factory methods found in their respective classes.
 
+最简单的方式开始使用Flux和Mono是使用在各自的类别中的众多工厂方法之一。
+
 For instance, to create a sequence of `String`, you can either enumerate them or put them
 in a collection and create the Flux from it, as follows:
+
+例如，要创建的序列String，您可以枚举它们或将它们放入集合中并从中创建Flux，如下所示：
 
 ====
 [source,java]
@@ -88,14 +120,16 @@ Mono<String> data = Mono.just("foo");
 
 Flux<Integer> numbersFromFiveToSeven = Flux.range(5, 3); <2>
 ----
-<1> Notice the factory method honors the generic type even though it has no value.
-<2> The first parameter is the start of the range, while the second parameter is the
-number of items to produce.
+<1> 请注意，即使工厂方法没有任何价值，它也会尊重该泛型类型.
+<2> 第一个参数是范围的开始，而第二个参数是要生成的项目数.
 ====
 
 When it comes to subscribing, `Flux` and `Mono` make use of Java 8 lambdas. You
 have a wide choice of `.subscribe()` variants that take lambdas for different
 combinations of callbacks, as shown in the following method signatures:
+
+当谈到订阅，Flux以及Mono 采用Java 8 lambda表达式。
+您可以选择多种.subscribe()类型的变体，它们针对不同的回调组合采用lambda表达式，如以下方法签名所示：
 
 [[subscribeMethods]]
 .Lambda-based subscribe variants for `Flux`
@@ -118,19 +152,21 @@ subscribe(Consumer<? super T> consumer,
           Runnable completeConsumer,
           Consumer<? super Subscription> subscriptionConsumer); <5>
 ----
-<1> Subscribe and trigger the sequence.
-<2> Do something with each produced value.
-<3> Deal with values but also react to an error.
-<4> Deal with values and errors but also run some code when the sequence successfully
-completes.
-<5> Deal with values and errors and successful completion but also do something with the
-`Subscription` produced by this `subscribe` call.
+<1>	订阅并触发序列.
+<2> 为每个产生的值做点事.
+<3> 处理值，但也会对错误做出反应.
+<4>	处理值和错误，但在序列成功完成后还要运行一些代码.
+<5> 处理值和错误并成功完成，但还要处理因subscribe调用产生的结果Subscription.
 ====
 
 TIP: These variants return a reference to the subscription that you can use to cancel the
 subscription when no more data is needed. Upon cancellation, the source should stop
 producing values and clean up any resources it created. This cancel-and-clean-up behavior
 is represented in Reactor by the general-purpose `Disposable` interface.
+
+
+TIP: 这些变体返回对订阅的引用，您可以在不需要更多数据时使用该引用来取消订阅。
+取消后，源应停止产生值并清除其创建的任何资源。这种取消和清理行为在Reactor中由通用Disposable接口表示。
 
 include::subscribe-details.adoc[]
 

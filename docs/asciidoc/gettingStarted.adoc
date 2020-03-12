@@ -1,8 +1,7 @@
 [[getting-started]]
 = Getting Started
 
-This section contains information that should help you get going with Reactor. It
-includes the following sections:
+本章节都内容信息将帮助大家更好的学习理解Reactor，主要包括以下小节内容
 
 * <<getting-started-introducing-reactor>>
 * <<prerequisites>>
@@ -13,17 +12,15 @@ includes the following sections:
 == Introducing Reactor
 
 //TODO flesh out, reword. could also be updated on the website
-Reactor is a fully non-blocking reactive programming foundation for the JVM, with
-efficient demand management (in the form of managing "`backpressure`"). It integrates
-directly with the Java 8 functional APIs, notably `CompletableFuture`, `Stream`, and
-`Duration`. It offers composable asynchronous sequence APIs -- `Flux` (for [N] elements) and
-`Mono` (for [0|1] elements) -- and extensively implements the
-https://www.reactive-streams.org/[Reactive Streams] specification.
+Reactor 是一个给予JVM实现的完全非堵塞的 reactive 编程基础, 具有高效的 demand 管理 (以 "`backpressure`"的形式管理). 它们直接与Java 8 的
+functional APIs 就行了整合, 特别整合了 `CompletableFuture`, `Stream`, and
+`Duration`. 提供了一系列的可组合的异步 APIs -- `Flux` (为了 [N] 元素) and
+`Mono` (为了 [0|1] 元素) -- 并大量的实现了
+https://www.reactive-streams.org/[Reactive Streams] 规范要求.
 
-Reactor also supports non-blocking inter-process communication with the
-`reactor-netty` project. Suited for Microservices Architecture, Reactor Netty offers
-backpressure-ready network engines for HTTP (including Websockets), TCP, and UDP.
-Reactive encoding and decoding are fully supported.
+Reactor 还支持与给予`reactor-netty` 的项目进行非堵塞的进程间的通信
+. 适用于微服务架构, Reactor Netty 为  HTTP (包括 Websockets), TCP, and UDP
+提供了支持 backpressure 的网络引擎. Reactive 的编码与解码方式是完全支持.
 
 [[prerequisites]]
 == Prerequisites

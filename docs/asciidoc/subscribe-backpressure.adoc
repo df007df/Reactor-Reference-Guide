@@ -4,13 +4,28 @@ When implementing backpressure in Reactor, the way consumer pressure is propagat
 The sum of current requests is sometimes referenced to as the current "`demand`", or "`pending request`".
 Demand is capped at `Long.MAX_VALUE`, representing an unbounded request (meaning "`produce as fast as you can`" -- basically disabling backpressure).
 
-The first request comes from the final subscriber at subscription time, yet the most direct ways of subscribing all immediately trigger an unbounded request of `Long.MAX_VALUE`:
+在Reactor中实施背压时，通过将压力发送request给上游操作员，将用户压力传播回源。
+当前请求的总和有时被称为当前“需求”或“待处理请求”。
+需求上限为Long.MAX_VALUE，表示无限制的请求（意思是“尽可能快地生成”，基本上是禁止背压）。
+
+The first request comes from the final subscriber at subscription time,
+yet the most direct ways of subscribing all immediately trigger an unbounded request of `Long.MAX_VALUE`:
+
+第一个请求在订阅时来自最终订户，但是最直接的订阅方式立即触发了以下无限请求Long.MAX_VALUE：
 
 * `subscribe()` and most of its lambda-based variants (to the exception of the one that has a Consumer<Subscription>)
 * `block()`, `blockFirst()` and `blockLast()`
 * iterating over a `toIterable()` or `toStream()`
 
+
+* subscribe() 及其大多数基于lambda的变体（具有Consumer <Subscription>的变体除外）
+* block()，blockFirst()和blockLast()
+* 遍历在一个toIterable()或toStream()
+
+
 The simplest way of customizing the original request is to `subscribe` with a `BaseSubscriber` with the `hookOnSubscribe` method overridden, as the following example shows:
+
+定制原始请求的最简单方法是subscribe使用BaseSubscriber，其中hookOnSubscribe方法被重写，如以下示例所示：
 
 ====
 [source,java]
@@ -48,31 +63,57 @@ the sequence to advance, or your Flux can get "`stuck`". That is why `BaseSubscr
 defaults to an unbounded request in `hookOnSubscribe`. When overriding this hook, you should usually
 call `request` at least once.
 
+WARNING: 在处理请求时，您必须小心以产生足够的需求来推进序列，否则您的Flux可能会“卡住”。
+这就是为什么BaseSubscriber中的hookOnSubscribe 默认为无限制请求。覆盖此钩子时，通常应request至少调用一次。
+
 ==== Operators that Change the Demand from Downstream
 
 One thing to keep in mind is that demand expressed at the subscribe level *can* be reshaped by each operator in the upstream chain.
 A textbook case is the `buffer(N)` operator: If it receives a `request(2)`, it is interpreted as a demand for *two full buffers*.
 As a consequence, since buffers need `N` elements to be considered full, the `buffer` operator reshapes the request to `2 x N`.
 
+要记住的一件事是，上游链中的每个operator都可以调整在订阅级别表达的需求。
+教科书的情况是buffer(N)运算符：如果它收到 request(2)，则解释为对两个完整缓冲区的需求。
+结果，由于缓冲区需要将N元素视为已满，因此buffer运算符将请求调整为2 x N。
+
 You might also have noticed that some operators have variants that take an `int` input parameter called `prefetch`.
 This is another category of operators that modify the downstream request.
 These are usually operators that deal with inner sequences, deriving a `Publisher` from each incoming element (like `flatMap`).
 
+您可能还已经注意到，某些运算符的变体采用了int称为的输入参数prefetch。这是修改下游请求的另一类运算符。
+这些通常是处理内部序列的运算符，它们Publisher从每个传入元素（如flatMap）派生一个。
+
 *Prefetch* is a way to tune the initial request made on these inner sequences.
 If unspecified, most of these operators start with a demand of `32`.
+
+Prefetch是一种调整对这些内部序列发出的初始请求的方法。如果未指定，则大多数这些运算符的起始要求为32。
 
 These operators usually also implement a *replenishing optimization*: Once the operator has seen 75% of the prefetch request fulfilled, it re-requests 75% from upstream.
 This is a heuristic optimization made so that these operators proactively anticipate the upcoming requests.
 
+这些操作员通常还会实现补充优化：一旦操作员看到预取请求的75％已完成，它就会从上游重新请求75％。
+进行启发式优化，以便这些操作员主动预测即将到来的请求。
+
 Finally, a couple of operators let you directly tune the request: `limitRate` and `limitRequest`.
+
+最后，几个运算符可让您直接调整请求：limitRate和limitRequest。
 
 `limitRate(N)` splits the downstream requests so that they are propagated upstream in smaller batches.
 For instance, a request of `100` made to `limitRate(10)` would result in, at most, `10` requests of `10` being propagated to the upstream.
 Note that, in this form, `limitRate` actually implements the replenishing optimization discussed earlier.
 
+limitRate(N)拆分下游请求，以便将它们以较小的批次传播到上游。例如，一个请求100到由limitRate(10)将导致，顶多10的请求10传播到上游。
+注意，以这种形式，limitRate实际上实现了前面讨论的补充优化。
+
 The operator has a variant that also lets you tune the replenishing amount (referred to as the `lowTide` in the variant): `limitRate(highTide, lowTide)`.
 Choosing a `lowTide` of `0` results in *strict* batches of `highTide` requests, instead of batches further reworked by the replenishing strategy.
+
+经营者有一个变种，也可以让你调整补充量（简称lowTide中变体）： limitRate(highTide, lowTide)。
+选择一个 lowTide 参数0 会导致严格的批次highTide请求，而不是通过补充策略进一步重做的批次。
 
 `limitRequest(N)`, on the other hand, *caps* the downstream request to a maximum total demand.
 It adds up requests up to `N`. If a single `request` does not make the total demand overflow over `N`, that particular request is wholly propagated upstream.
 After that amount has been emitted by the source, `limitRequest` considers the sequence complete, sends an `onComplete` signal downstream, and cancels the source.
+
+limitRequest(N)，另一方面，限额了下游请求的最大总需求。它将请求总计为N。如果单个请求request没有使总需求超出N，则该特定请求将完全向上游传播。
+在源头发出该数量的信号后，limitRequest认为序列已完成，向下游发送onComplete信号，然后取消源。

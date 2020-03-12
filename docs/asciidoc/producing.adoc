@@ -6,21 +6,33 @@ programmatically defining its associated events (`onNext`, `onError`, and
 trigger the events that we call a *sink*. There are actually a few sink
 variants, which we'll get to shortly.
 
+在本节中，我们介绍的创建Flux或Mono通过编程方式定义及其相关事件（onNext，onError，和 onComplete）。
+所有这些方法都满足相同的设计：它们公开一个API来触发我们称为接收器的事件。实际上有一些接收器变体，稍后我们将介绍。
+
 [[producing.generate]]
 == Synchronous `generate`
 The simplest form of programmatic creation of a `Flux` is through the `generate`
 method, which takes a generator function.
+
+以编程方式创建“ Flux”的最简单形式是通过“ generate”方法，通过使用生成器功能。
 
 This is for *synchronous* and *one-by-one* emissions, meaning that
 the sink is a `SynchronousSink` and that its `next()` method can only be called
 at most once per callback invocation. You can then additionally call `error(Throwable)`
 or `complete()`, but this is optional.
 
+这用于*同步发射*和*一对一*发射，这意味着接收器为 SynchronousSink，并且其next()方法最多只能在每次回调调用时调用一次。
+然后，您可以另外调用error(Throwable) 或complete()，但这是可选的。
+
 The most useful variant is probably the one that also lets you keep a state
 that you can refer to in your sink usage to decide what to emit next. The generator
 function then becomes a `BiFunction<S, SynchronousSink<T>, S>`, with `<S>` the
 type of the state object. You have to provide a `Supplier<S>` for the initial
 state, and your generator function now returns a new state on each round.
+
+最有用的变体可能是一种变体，它还可以让您保持在接收器使用中可以参考的状态，以决定接下来要发射什么。
+然后，生成器函数变为BiFunction<S, SynchronousSink<T>, S>带有<S>状态对象类型的。
+您必须Supplier<S>为初始状态提供一个，并且生成器函数现在在每个回合中都返回一个新状态。
 
 For instance, you could use an `int` as the state:
 
@@ -36,12 +48,10 @@ Flux<String> flux = Flux.generate(
       return state + 1; // <4>
     });
 ----
-<1> We supply the initial state value of 0.
-<2> We use the state to choose what to emit (a row in the multiplication table
-of 3).
-<3> We also use it to choose when to stop.
-<4> We return a new state that we use in the next invocation (unless the
-sequence terminated in this one).
+<1> 我们提供初始状态值0
+<2> 我们使用状态来选择要发出的信号（乘法表3中的一行）.
+<3> 我们还使用它来选择何时停止
+<4> 我们返回在下一个调用中使用的新状态（除非序列在此调用中终止).
 ====
 
 The preceding code generates the table of 3, as the following sequence:
@@ -65,6 +75,8 @@ The preceding code generates the table of 3, as the following sequence:
 You can also use a mutable `<S>`. The example above could for instance be
 rewritten using a single `AtomicLong` as the state, mutating it on each round:
 
+您也可以使用可变的<S>。例如，上面的示例可以使用一个AtomicLong状态作为重写状态，在每个回合中对其进行更改
+
 .Mutable state variant
 ====
 [source,java]
@@ -78,14 +90,16 @@ Flux<String> flux = Flux.generate(
       return state; // <3>
     });
 ----
-<1> This time, we generate a mutable object as the state.
-<2> We mutate the state here.
-<3> We return the *same* instance as the new state.
+<1> 这次，我们生成一个可变对象作为状态.
+<2> 我们在这里改变状态.
+<3> 我们返回与新状态相同的实例.
 ====
 
 TIP: If your state object needs to clean up some resources, use the
 `generate(Supplier<S>, BiFunction, Consumer<S>)` variant to clean up the last
 state instance.
+
+TIP: 如果您的状态对象需要清理一些资源，请使用 generate(Supplier<S>, BiFunction, Consumer<S>)变体来清理最后一个状态实例
 
 The following example uses the `generate` method that includes a `Consumer`:
 
@@ -102,10 +116,10 @@ Flux<String> flux = Flux.generate(
     }, (state) -> System.out.println("state: " + state)); // <4>
 }
 ----
-<1> Again, we generate a mutable object as the state.
-<2> We mutate the state here.
-<3> We return the *same* instance as the new state.
-<4> We see the last state value (11) as the output of this `Consumer` lambda.
+<1> 同样，我们生成一个可变对象作为状态.
+<2> 我们在这里改变状态.
+<3> 我们返回与新状态相同的实例.
+<4> 我们将最后一个状态值（11）视为此Consumerlambda 的输出.
 ====
 
 In the case of the state containing a database connection or other resource
@@ -113,18 +127,27 @@ that needs to be handled at the end of the process, the `Consumer` lambda could
 close the connection or  otherwise handle any tasks that should be done at the
 end of the process.
 
+如果状态包含在过程结束时需要处理的数据库连接或其他资源，则Consumer lambda可以关闭连接或以其他方式处理应在过程结束时完成的任何任务
+
 [[producing.create]]
 == Asynchronous and Multi-threaded: `create`
 
 `create` is a more advanced form of programmatic creation of a `Flux` which is
 suitable for multiple emissions per round, even from multiple threads.
 
+create是Flux内的一种更高级的程序化创建形式，适用于每轮多次排放，甚至来自多个线程。
+
 It exposes a `FluxSink`, with its `next`, `error`, and `complete` methods.
 Contrary to `generate`, it doesn't have a state-based variant. On the other
 hand, it can trigger multi-threaded events in the callback.
 
+它暴露了FluxSink，与它的next，error和complete方法。与此相反generate，它没有基于状态的变体。另一方面，它可以触发回调中的多线程事件。
+
 TIP: `create` can be very useful to bridge an existing API with the reactive
 world - such as an asynchronous API based on listeners.
+
+TIP: create 将现有的API与响应世界联系起来非常有用-例如基于侦听器的异步API。
+
 
 WARNING: `create` *doesn't parallelize your code nor does it make it asynchronous*, even
 though it _can_ be used with asynchronous APIs. If you block within the `create` lambda,
@@ -135,9 +158,17 @@ loop starving the same thread they are supposed to run from. Use the `subscribeO
 variant: `requestOnSeparateThread = false` will use the `Scheduler` thread for the `create`
 and still let data flow by performing `request` in the original thread.
 
+WARNING: create 即使它可以与异步API一起使用，也不会并行化您的代码，也不会使其异步。
+如果您在createlambda中阻塞，则会使自己陷入僵局和类似的副作用。
+即使使用subscribeOn，也有一个警告，即长阻塞的create lambda（例如无限循环调用 sink.next(t)）可以锁定管道：由于循环会饿死它们应该从中运行的相同线程，因此将永远不会执行请求。
+使用subscribeOn(Scheduler, false) 变体：requestOnSeparateThread = false将Scheduler线程用于，create 并仍然通过request在原始线程中执行来让数据流动。
+
 Imagine that you use a listener-based API. It processes data by chunks
 and has two events: (1) a chunk of data is ready and (2) the processing is
 complete (terminal event), as represented in the `MyEventListener` interface:
+
+假设您使用基于侦听器的API。
+它按块处理数据并有两个事件：（1）数据块已准备就绪，并且（2）处理完成（终端事件），如MyEventListener接口所示：
 
 ====
 [source,java]
@@ -170,14 +201,16 @@ Flux<String> bridge = Flux.create(sink -> {
     });
 });
 ----
-<1> Bridge to the `MyEventListener` API
-<2> Each element in a chunk becomes an element in the `Flux`.
-<3> The `processComplete` event is translated to `onComplete`.
-<4> All of this is done asynchronously whenever the `myEventProcessor` executes.
+<1> 桥接到MyEventListenerAPI
+<2> 块中的每个元素都成为中的一个元素Flux.
+<3> 该processComplete事件已翻译为onComplete.
+<4> 每当myEventProcessor执行时，所有这些操作都是异步完成的.
 ====
 
 Additionally, since `create` can bridge asynchronous APIs and manages backpressure, you
 can refine how to behave backpressure-wise, by indicating an `OverflowStrategy`:
+
+此外，由于create可以桥接异步API并管理背压，因此您可以通过指示以下内容来优化如何进行背压行为OverflowStrategy：
 
  - `IGNORE` to Completely ignore downstream backpressure requests.
 This may yield `IllegalStateException` when queues get full downstream.
@@ -189,8 +222,19 @@ This may yield `IllegalStateException` when queues get full downstream.
  - `BUFFER` (the default) to buffer all signals if the downstream can't keep up.
  (this does unbounded buffering and may lead to `OutOfMemoryError`).
 
+
+  - IGNORE完全忽略下游背压请求。IllegalStateException当队列下游充满时，可能会产生这种情况.
+  - ERROR 去发送一个 IllegalStateException信号，当下游无法跟上时发出信号.
+  - DROP 如果下游尚未准备好接收信号，则丢弃该信号.
+  - LATEST 让下游只从上游获取最新信号.
+  - BUFFER（默认设置）以在下游无法跟上时缓冲所有信号。（这会实现无限缓冲，并可能导致OutOfMemoryError).
+
+
 NOTE: `Mono` also has a `create` generator. The `MonoSink` of Mono's create
 doesn't allow several emissions. It will drop all signals after the first one.
+
+
+NOTE: Mono也有一个create创造器。在MonoSink的创造方法中不允许几个发射。它将在第一个信号之后丢弃所有信号
 
 == Asynchronous but single-threaded: `push`
 `push` is a middle ground between `generate` and `create` which is suitable for
@@ -198,6 +242,9 @@ processing events from a single producer. It is similar to `create` in the sense
 that it can also be asynchronous and can manage backpressure using any of the
 overflow strategies supported by `create`. However, **only one producing thread**
 may invoke `next`, `complete` or `error` at a time.
+
+push是之间的中间接地generate并且create其适用于从一个生产者处理事件。从create某种意义上讲，它类似于，它也可以是异步的，并且可以使用所支持的任何溢出策略来管理背压create。
+但是，只有一个线程生产 可以调用next，complete或error在同一时间。
 
 ====
 [source,java]
@@ -222,10 +269,10 @@ Flux<String> bridge = Flux.push(sink -> {
     });
 });
 ----
-<1> Bridge to the `SingleThreadEventListener` API.
-<2> Events are pushed to the sink using `next` from a single listener thread.
-<3> `complete` event generated from the same listener thread.
-<4> `error` event also generated from the same listener thread.
+<1> 桥接到SingleThreadEventListener API.
+<2> 使用next单个侦听器线程将事件推送到接收器.
+<3> complete 从同一侦听器线程生成的事件.
+<4> error 事件也从同一侦听器线程生成.
 ====
 
 === A hybrid push/pull model
@@ -234,13 +281,21 @@ What we mean by that is that despite most of the processing being asynchronous
 (suggesting a _push_ approach), there is a small _pull_ component to it: the
 request.
 
+像的大多数Reactor运算符都create遵循混合 推/拉模型。
+我们的意思是，尽管大多数处理都是异步的（建议采用推送方法），但其中有一个很小的拉组件：请求。
+
 The consumer _pulls_ data from the source in the sense that it won't emit anything
 until first requested. The source _pushes_ data to the consumer whenever it
 becomes available, but within the bounds of its requested amount.
 
+消费者从源中提取数据，这意味着直到第一次请求它才发出任何东西。
+只要有可用，源就会将数据推送到使用者，但要在其请求数量的范围内
+
 Note that `push()` and `create()` both allow to set up an `onRequest` consumer
 in order to manage the request amount and to ensure that data is pushed through
 the sink only when there is pending request.
+
+请注意，push()并且create()两者都允许设置onRequest使用者以管理请求量，并确保仅在有待处理的请求时才通过接收器推送数据
 
 ====
 [source,java]
@@ -263,9 +318,9 @@ Flux<String> bridge = Flux.create(sink -> {
     });
 });
 ----
-<1> Poll for messages when requests are made.
-<2> If messages are available immediately, push them to the sink.
-<3> The remaining messages that arrive asynchronously later are also delivered.
+<1> 发出请求时轮询消息.
+<2> 如果消息立即可用，请将其推入接收器.
+<3> 其余的消息也将在稍后被异步传递到达.
 ====
 
 === Cleaning up after `push()` or `create()`
@@ -274,6 +329,9 @@ Two callbacks, `onDispose` and `onCancel`, perform any cleanup on cancellation
 or termination. `onDispose` can be used to perform cleanup when the `Flux`
 completes, errors out, or is cancelled. `onCancel` can be used to perform any
 action specific to cancellation prior to cleanup with `onDispose`.
+
+两个回调onDispose和onCancel在取消时执行任何清理或终止。 当`Flux` 完成，出错或者被取消时，`onDispose`可用于执行清理。
+`onCancel`可用于执行任何在使用onDispose进行清理之前，特定于取消的操作。
 
 ====
 [source,java]
@@ -284,8 +342,8 @@ Flux<String> bridge = Flux.create(sink -> {
         .onDispose(() -> channel.close())  // <2>
     });
 ----
-<1> `onCancel` is invoked first, for cancel signal only.
-<2> `onDispose` is invoked for complete, error, or cancel signals.
+<1> onCancel 首先调用，仅用于取消信号.
+<2> onDispose 调用为完成，错误或取消信号而调用.
 ====
 
 == Handle
