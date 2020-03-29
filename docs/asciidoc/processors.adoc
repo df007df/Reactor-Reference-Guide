@@ -2,13 +2,21 @@ Processors are a special kind of `Publisher` that are also a `Subscriber`. That 
 that you can `subscribe` to a `Processor` (generally, they implement `Flux`), but you can
 also call methods to manually inject data into the sequence or terminate it.
 
+处理器是一种特殊的Publisher，同时也是一个Subscriber。
+这意味着你可以subscribe到Processor（通常，他们实施Flux），但你也可以手动调用方法来注入数据的序列或终止它。
+
+
 There are several kinds of Processors, each with a few particular semantics, but before
 you start looking into these, you need to ask yourself the following question:
+
+处理器有几种，每种都有一些特殊的语义，但是在开始研究它们之前，您需要问自己以下问题：
 
 = Do I Need a Processor?
 
 Most of the time, you should try to avoid using a `Processor`. They are harder to use
 correctly and prone to some corner cases.
+
+大多数时候，您应该避免使用Processor。它们很难正确使用，并且容易出现极端情况。
 
 If you think a `Processor` could be a good match for your use case, ask yourself if you
 have tried these two alternatives:

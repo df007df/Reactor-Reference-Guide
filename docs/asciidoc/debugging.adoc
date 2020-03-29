@@ -5,21 +5,34 @@ Switching from an imperative and synchronous programming paradigm to a reactive 
 asynchronous one can sometimes be daunting. One of the steepest steps in the learning
 curve is how to analyze and debug when something goes wrong.
 
+从命令式和同步编程范例切换到被动和异步编程范例有时会令人生畏。
+学习曲线中最陡峭的步骤之一是出现问题时如何进行分析和调试。
+
 In the imperative world, debugging is usually pretty straightforward. You can read the
 stacktrace and see where the problem originated. Was it entirely a failure
 of your code? Did the failure occur in some library code? If so, what part of your code
 called the library, potentially passing in improper parameters that ultimately caused the
 failure?
 
+在命令式世界中，调试通常非常简单。您可以阅读stacktrace并查看问题的根源。这完全是您的代码失败吗？
+故障是否发生在某些库代码中？如果是这样，您的代码的哪一部分调用了库，可能会传入不正确的参数，最终导致失败？
+
 == The Typical Reactor Stack Trace
 
 When you shift to asynchronous code, things can get much more complicated.
+
+当您转向异步代码时，事情会变得更加复杂。
 
 //TODO The code that generated the following stack trace should be here
 
 Consider the following stack trace:
 
+考虑以下堆栈跟踪：
+
 .A typical Reactor stack trace
+
+典型的Reactor堆栈跟踪
+
 ====
 [source,java]
 ----
@@ -49,29 +62,46 @@ java.lang.IndexOutOfBoundsException: Source emitted more than one item
 There is a lot going on there. We get an `IndexOutOfBoundsException`, which tells us that
 a `source emitted more than one item`.
 
+那里发生了很多事情。我们得到一个IndexOutOfBoundsException，告诉我们一个`source emitted more than one item`.
+
 We can probably quickly come to assume that this source is a Flux or a Mono, as confirmed by
 the next line, which mentions `MonoSingle`. So it appears to be some sort of complaint
 from a `single` operator.
+
+正如下一行提到的所示，我们可能很快就可以假定此源是Flux或Mono MonoSingle。因此，这似乎是single操作员的某种抱怨。
 
 Referring to the Javadoc for the `Mono#single` operator, we see that `single` has a contract:
 The source must emit exactly one element. It appears we had a source that emitted more
 than one and thus violated that contract.
 
+参考Mono#single操作符的Javadoc时，我们看到single有一个约定：源必须确切地发出一个元素。看来我们有一个排放源不止一个，因此违反了该合同。
+
 Can we dig deeper and identify that source? The following rows are not very helpful. They
 take us through the internals of what seems to be a reactive chain, through
 multiple calls to `subscribe` and `request`.
+
+我们可以更深入地挖掘并确定来源吗？以下几行不是很有帮助。
+带我们进入似乎是一个reactive 链的内部。进过了多次调用subscribe和request，
 
 By skimming over these rows, we can at least start to form a picture of the kind of chain
 that went wrong: It seems to involve a `MonoSingle`, a `FluxFlatMap`, and a `FluxRange`
 (each gets several rows in the trace, but overall these three classes are involved). So a
 `range().flatMap().single()` chain maybe?
 
+通过略读这些行，我们至少可以开始形成一条错误链的图：似乎涉及到MonoSingle，a FluxFlatMap和a FluxRange （每个都在跟踪中得到几行，但总体上涉及这三个类）。
+那么range().flatMap().single()也许是一个调用链？
+
 But what if we use that pattern a lot in our application? This still does not tell us
 much, and simply searching for `single` is not going to find the problem. Then the last
 line refers to some of our code. Finally, we are getting close.
 
+但是，如果我们在应用程序中频繁使用该模式怎么办？这仍然不能告诉我们太多，仅搜索single是不会发现问题的。
+然后，最后一行引用了我们的一些代码。最后，我们越来越近了。
+
 Hold on, though. When we go to the source file, all we see is that a
 pre-existing `Flux` is subscribed to, as follows:
+
+等一下。转到源文件时，我们看到 之前的退出的Flux 是已被预订了，如下所示：
 
 ====
 [source,java]
@@ -82,6 +112,8 @@ toDebug.subscribe(System.out::println, Throwable::printStackTrace);
 
 All of this happened at subscription time, but the `Flux` itself was not
 declared there. Worse, when we go to where the variable is declared, we see the following:
+
+所有这些都是在订阅时发生的，但Flux本身并未在此处声明。更糟糕的是，当我们转到声明变量的位置时，会看到以下内容：
 
 ====
 [source,java]
@@ -94,12 +126,17 @@ The variable is not instantiated where it is declared. We must assume a worst-ca
 scenario where we find out that there could be a few different code paths that set it in
 the application. We remain unsure of which one caused the issue.
 
+变量未在声明的地方实例化。
+我们必须假设在最坏的情况下，我们发现可能在应用程序中设置了一些不同的代码路径。我们仍然不确定是哪一个引起了问题。
+
 NOTE: This is kind of the Reactor equivalent of a runtime error, as opposed to a
 compilation error.
 
 What we want to find out more easily is where the operator was added into the chain -
 that is,  where the `Flux` was declared. We usually refer to that as the "`assembly`" of
 the `Flux`.
+
+我们想要更容易发现的是将运算符添加到链中的位置-即Flux声明的位置。我们通常将其称为Flux的“assembly” 。
 
 [[debug-activate]]
 == Activating Debug Mode - aka tracebacks
@@ -109,13 +146,24 @@ the debugging capabitilies due to the fact that it captures the stacktrace on ev
 See <<checkpoint-alternative>> for a more fine grained way of debugging,
 and <<reactor-tools-debug>> for a more advanced and performant global option.
 
+
+WARNING: 本节介绍了启用调试功能的最简单但也是最慢的方法，因为它捕获了每个运算符上的stacktrace。
+有关更细粒度的调试方法，请参见<<checkpoint-alternative>>；有关更高级和高性能的全局选项，请参见 <<reactor-tools-debug>>。
+
 Even though the stacktrace was still able to convey some information for someone with a
 bit of experience, we can see that it is not ideal by itself in more advanced cases.
 
+即使stacktrace仍然能够为有经验的人传达一些信息，但我们可以看到，在更高级的情况下，它本身并不理想。
+
+
 Fortunately, Reactor comes with  assembly-time instrumentation that is designed for debugging.
+
+幸运的是，Reactor带有专为调试而设计的组装时工具。
 
 This is done by customizing the `Hooks.onOperator` hook at application start (or at
 least before the incriminated `Flux` or `Mono` can be instantiated), as follows:
+
+这是通过Hooks.onOperator在应用程序启动时（或至少在包含Flux或Mono可实例化之前）自定义钩子来完成的，如下所示：
 
 ====
 [source,java]
@@ -130,16 +178,25 @@ capturing a stack trace there. Since this is done when the operator chain is dec
 hook should be activated before that, so the safest way is to activate it right at the
 start of your application.
 
+通过包装操作符的结构并捕获其中的堆栈跟踪信息，开始对Flux（和Mono）操作符方法（将它们组装到链中）的调用进行检测。
+由于此操作是在声明操作员链时完成的，因此应在此之前将钩子激活，因此最安全的方法是在应用程序开始时立即将其激活。
+
 Later on, if an exception occurs, the failing operator is able to refer to that capture
 and append it to the stack trace. We call this captured assembly information a *traceback*.
 
+稍后，如果发生异常，则失败的运算符可以引用该捕获并将其附加到堆栈跟踪中。我们将此捕获的程序集信息称为回溯。
+
 In the next section, we see how the stack trace differs and how to interpret
 that new information.
+
+在下一节中，我们将了解堆栈跟踪的不同之处以及如何解释该新信息。
 
 == Reading a Stack Trace in Debug Mode
 
 When we reuse our initial example but activate the `operatorStacktrace` debug feature,
 the stack trace is as follows:
+
+当我们重用最初的示例但激活operatorStacktrace调试功能时，堆栈跟踪如下：
 
 ====
 [source,java]
@@ -165,15 +222,12 @@ Assembly trace from producer [reactor.core.publisher.MonoSingle] : <4>
 Error has been observed by the following operator(s): <5>
 	|_	Flux.single ⇢ reactor.guide.GuideTests.scatterAndGather(GuideTests.java:949) <6>
 ----
-<1> This is new: We see the wrapper operator that captures the stack.
-<2> Apart from that, the first section of the stack trace is still the same for the most
-part, showing a bit of the operator's internals (so we removed a bit of the snippet here).
-<3> This is where the traceback starts to appear.
-<4> First, we get some details about where the operator was assembled.
-<5> We also get a traceback of the error as it propagated through the operator chain,
-from first to last (error site to subscribe site).
-<6> Each operator that saw the error is mentioned along with the user class and line where it
-was used.
+<1> 我们看到包装操作符捕获堆栈。
+<2> 除此之外，堆栈跟踪的第一部分在大多数情况下仍然相同，显示了操作员内部的一些内容（因此我们在此处删除了一些代码段）.
+<3> 这是回溯开始出现的地方.
+<4> 首先，我们获得一些有关操作员组装位置的详细信息.
+<5> 当错误通过操作员链从头到尾（错误站点到订阅站点）传播时，我们还可以追溯到该错误.
+<6> 提及错误的每个操作符均会与用户类别和使用错误的行一起提及
 ====
 
 The captured stack trace is appended to the original error as a
@@ -183,8 +237,13 @@ exception. Here, it shows that the `single` that caused our issue was created in
 `scatterAndGather` method, itself called from a `populateDebug` method that got executed
 through JUnit.
 
+捕获的堆栈跟踪将被抑制后附加到原始错误OnAssemblyException。它有两个部分，但是第一部分是最有趣的。它显示了触发异常的操作员的构造路径。
+在这里，它表明single导致我们问题的是在scatterAndGather方法中创建的，该 方法本身是populateDebug通过JUnit执行的方法调用的。
+
 Now that we are armed with enough information to find the culprit, we can have
 a meaningful look at that `scatterAndGather` method:
+
+既然我们已经掌握了足够的信息来找到罪魁祸首，我们就可以对该scatterAndGather方法进行有自信的排查：
 
 ====
 [source,java]
@@ -202,9 +261,16 @@ several HTTP calls to a few URLs but that is chained with `single`, which is too
 restrictive. After a short `git blame` and a quick discussion with the author of
 that line, we find out he meant to use the less restrictive `take(1)` instead.
 
+现在，我们可以看到错误的根本原因是flatMap它对几个URL执行了几次HTTP调用，但是与链接在一起single，这太过严格了。
+在git blame与该行的作者进行简短简短的讨论之后，我们发现他的意思是使用限制性较小的take(1)标签。
+
 We have solved our problem.
 
+我们已经解决了我们的问题。
+
 Now consider the following line in the stack trace:
+
+现在考虑堆栈跟踪中的以下行：
 
 ====
 [source]
@@ -218,6 +284,9 @@ this particular example, because the error was actually happening in the last
 operator in the chain (the one closest to `subscribe`). Considering another
 example might make it more clear:
 
+在此特定示例中，调试堆栈跟踪的第二部分不一定是有趣的，因为该错误实际上发生在链中的最后一个运算符中（最接近的那个subscribe）。
+考虑另一个示例可能会更清楚：
+
 ====
 [source,java]
 ----
@@ -230,6 +299,8 @@ FakeRepository.findAllUserByName(Flux.just("pedro", "simon", "stephane"))
 
 Now imagine that, inside `findAllUserByName`, there is a `map` that fails. Here,
 we would see the following final traceback:
+
+现在想象一下，在内部findAllUserByName，有一个map失败。在这里，我们将看到以下最终回溯：
 
 ====
 [source,java]
@@ -255,6 +326,14 @@ method).
 . Finally, it is seen by an `elapsed` and a `transform`. Once again, `elapsed` is applied
 by the transformation function of that second transform.
 
+
+这对应于操作员链中获得该错误通知的部分：
+
+. 异常起源于第一个map。
+. 一秒钟就可以看到它map（两者实际上都对应于该findAllUserByName 方法）。
+. 然后通过a filter和a 看到transform，这表明链的一部分是由可重用的转换函数（此处为applyFiltersUtility方法）构造的。
+. 最后，由elapsed和看到transform。再次elapsed由第二个转换的转换函数应用。
+
 TIP: As tracebacks are appended to original errors as suppressed exceptions, this can somewhat
 interfere with another type of exception that uses this mechanism: composite exceptions.
 Such exceptions can be created directly via `Exceptions.multiple(Throwable...)`, or by some
@@ -269,12 +348,17 @@ We deal with a form of instrumentation here, and creating a stack trace is costl
 is why this debugging feature should only be activated in a controlled manner, as a last
 resort.
 
+我们在这里处理一种形式的检测，并且创建堆栈跟踪非常昂贵。这就是为什么只能以可控制的方式激活此调试功能的原因。
+
 [[checkpoint-alternative]]
 === The `checkpoint()` Alternative
 
 The debug mode is global and affects every single operator assembled into a `Flux` or a
 `Mono` inside the application. This has the benefit of allowing after-the-fact
 debugging: Whatever the error, we can obtain additional information to debug it.
+
+调试模式是全局的，会影响组装到应用程序内部Flux或 Mono内部的每个操作员。
+这样做的好处是可以进行事后调试：无论发生什么错误，我们都可以获取其他信息来对其进行调试。
 
 As we saw earlier, this global knowledge comes at the cost of an impact on performance
 (due to the number of populated stack traces). That cost can be reduced if we have an
@@ -283,25 +367,39 @@ likely to be problematic unless we observed an error in the wild, saw we were mi
 assembly information, and then modified the code to activate assembly tracking, hoping to
 observe the same error again.
 
+正如我们前面所看到的，这种全局性知识是以影响性能为代价的（由于填充的堆栈跟踪的数量）。如果我们知道有问题的操作符，有可能降低消耗成本。
+但是，通常我们不知道哪个运算符可能有问题，除非我们在野外观察到错误，看到我们缺少程序集信息，然后修改代码以激活程序集跟踪，希望再次观察到相同的错误。
+
 In that scenario, we have to switch into debugging mode and make preparations in order to
 better observe a second occurrence of the error, this time capturing all the additional
 information.
+
+在这种情况下，我们必须切换到调试模式并进行准备，以便更好地观察第二次出现错误，这次捕获了所有其他信息。
 
 If you can identify reactive chains that you assemble in your application for which
 serviceability is critical, you can achieve a mix of both techniques with the
 `checkpoint()` operator.
 
+如果您可以确定在应用程序中组装的对可维护性至关重要的反应式链，则可以与checkpoint()操作员一起实现这两种技术的混合 。
+
 You can chain this operator into a method chain. The `checkpoint` operator works like the
 hook version but only for its link of that particular chain.
+
+您可以将此运算符链接到方法链中。该checkpoint运算符的工作方式类似于钩版本，但仅针对其特定链的链接
 
 There is also a `checkpoint(String)` variant that lets you add a unique `String` identifier
 to the assembly traceback. This way, the stack trace is omitted and you rely on the
 description to identify the assembly site. `checkpoint(String)` imposes less processing
 cost than a regular `checkpoint`.
 
+还有一个checkpoint(String)变体，可让您String向程序集追溯添加唯一标识符。
+这样，将忽略堆栈跟踪，而您依靠描述来标识组装位置。checkpoint(String)比普通的checkpoint处理成本更低。
+
 //snippets are in FluxOnAssemblyTest
 `checkpoint(String)` includes "`light`" in its output (which can be handy when
 searching), as shown in the following example:
+
+checkpoint(String) 在其输出中包括“light”（在搜索时可以方便使用），如以下示例所示：
 
 ====
 ----
@@ -317,6 +415,9 @@ behavior by using the `checkpoint("description", true)` version. We are now back
 initial message for the traceback, augmented with a `description`, as shown in the
 following example:
 
+最后但并非最不重要的一点是，如果您想向检查点添加更通用的描述，但仍依靠堆栈跟踪机制来标识组装站点，则可以通过使用checkpoint("description", true)版本来强制执行该行为。
+现在，我们返回到用于追溯的初始消息，并以进行了扩展description，如以下示例所示：
+
 ====
 ----
 Assembly trace from producer [reactor.core.publisher.ParallelSource], described as [descriptionCorrelation1234] : <1>
@@ -325,7 +426,7 @@ Assembly trace from producer [reactor.core.publisher.ParallelSource], described 
 Error has been observed by the following operator(s):
 	|_	ParallelFlux.checkpoint ⇢ reactor.core.publisher.FluxOnAssemblyTest.parallelFluxCheckpointDescriptionAndForceStack(FluxOnAssemblyTest.java:225)
 ----
-<1> `descriptionCorrelation1234` is the description provided in the `checkpoint`.
+<1> `descriptionCorrelation1234` is the description provided in the `checkpoint`. 	descriptionCorrelation1234是中提供的说明checkpoint。
 ====
 
 The description could be a static identifier or user-readable description or a wider
@@ -341,9 +442,16 @@ Project Reactor comes with a separate Java Agent that instruments your code and 
 debugging info without paying the cost of capturing the stacktrace on every operator call.
 The behaviour is very similar to <<debug-activate>>, but without the runtime performance overhead.
 
+Project Reactor带有一个单独的Java代理，可对您的代码进行检测并添加调试信息，而无需话费每次操作调用时捕获stacktrace的消耗。
+该行为与 <<debug-activate>>（也称为回溯）非常相似，但没有运行时性能开销。
+
 To use it in your app, you must add it as a dependency.
 
+要在您的应用程序中使用它，必须将其添加为依赖项。
+
 The following example shows how to add `reactor-tools` as a dependency in Maven:
+
+下面的示例显示如何reactor-tools在Maven中添加为依赖项：
 
 .reactor-tools in Maven, in `<dependencies>`
 ====
@@ -371,6 +479,9 @@ dependencies {
 ====
 
 It also needs to be explicitly initialized with:
+
+还需要使用以下命令显式初始化它：
+
 ====
 [source,java]
 ----
@@ -380,6 +491,10 @@ ReactorDebugAgent.init();
 
 TIP: Since the implementation will instrument your classes when they are loaded,
 the best place to put it is before everything else in your main(String[]) methood:
+
+
+TIP: 由于该实现将在加载类时对它们进行检测，因此放置它的最佳位置是在main（String []）方法中的所有其他内容之前：
+
 ====
 [source,java]
 ----
@@ -391,6 +506,9 @@ public static void main(String[] args) {
 ====
 
 You may also re-process existing classes if you cannot run the init eagerly (e.g. in the tests):
+
+如果您不能急于运行init（例如在测试中），也可以重新处理现有的类：
+
 ====
 [source,java]
 ----
@@ -403,19 +521,27 @@ WARNING: Be aware that the re-processing takes a couple of seconds due to the ne
 all loaded classes and apply the transformation.
 Use it only if you see that some call-sites are not instrumented.
 
+WARNING: 请注意，由于需要遍历所有已加载的类并应用转换，因此重新处理需要花费几秒钟的时间。仅当看到某些呼叫站点没有检测到时，才使用它。
+
 === Limitations
 `ReactorDebugAgent` is implemented as a Java Agent and uses https://bytebuddy.net/#/[ByteBuddy]
 to perform the self-attach.
 Self-attach may not work on some JVMs, please refer to ByteBuddy's documentation for more details.
+
+ReactorDebugAgent作为Java代理实现，并使用ByteBuddy 进行自我附加。自连接可能不适用于某些JVM，请参阅ByteBuddy的文档以获取更多详细信息。
 
 == Logging a Sequence
 
 In addition to stack trace debugging and analysis, another powerful tool to have in your
 toolkit is the ability to trace and log events in an asynchronous sequence.
 
+除了堆栈跟踪调试和分析之外，工具包中另一个强大的工具是能够以异步顺序跟踪和记录事件。
+
 The `log()` operator can do just that. Chained inside a sequence, it peeks at every
 event of the `Flux` or `Mono` upstream of it (including `onNext`, `onError`, and
 `onComplete` as well as subscriptions, cancellations, and requests).
+
+ log()操作符可以做到这一点。序列内部链的，它在偷窥的每个在Flux或Mono事件上游的事件（包括onNext，onError，和 onComplete以及订阅，取消和请求）。
 
 .A note on logging implementation
 ****
@@ -423,21 +549,34 @@ The `log` operator uses the `Loggers` utility class, which picks up common loggi
 frameworks such as Log4J and Logback through `SLF4J` and defaults to logging to the
 console if SLF4J is unavailable.
 
+这个log操作者使用Loggers工具类，其拾取通过共同日志框架如Log4J的和的logback SLF4J，缺省值为登录到控制台如果SLF4J不可用。
+
 The console fallback uses `System.err` for the `WARN` and `ERROR` log levels and
 `System.out` for everything else.
+
+控制台回调System.err用于WARN和ERROR日志级别以及 System.out其他所有情况。
 
 If you prefer a JDK `java.util.logging` fallback, as in 3.0.x, you can get it by setting
 the `reactor.logging.fallback` system property to `JDK`.
 
+如果您喜欢java.util.logging在JDK3.0.x中使用，则可以通过将reactor.logging.fallbacksy JDK stem属性设置为来获得它。
+
 In all cases, when logging in production *you should take care to configure the
 underlying logging framework to use its most asynchronous and non-blocking approach* --
 for instance, an `AsyncAppender` in Logback or `AsyncLogger` in Log4j 2.
+
+在所有情况下，在生产环境中登录时，都应谨慎配置底层日志记录框架，以使用其最异步和非阻塞的方法  ，
+例如，AsyncAppender在Logback 或 AsyncLogger 在 Log4j2中。
+
 ****
 
 For instance, suppose we have Logback activated and configured and a chain like
 `range(1,10).take(3)`. By placing a `log()` before the `take`, we can get some
 insight into how it works and what kind of events it propagates upstream to the range,
 as the following example shows:
+
+例如，假设我们已激活并配置了Logback以及类似的链 range(1,10).take(3)。
+通过在take之前放置log()，我们可以深入了解其工作原理以及它将向上游传播到范围的事件的种类，如以下示例所示：
 
 ====
 [source,java]
@@ -450,6 +589,8 @@ flux.subscribe();
 ====
 
 This prints out the following (through the logger's console appender):
+
+这将打印出以下内容（通过记录器的控制台附加）：
 
 ====
 ----
@@ -484,3 +625,7 @@ The last line, (4), is the most interesting. We can see the `take` in action the
 operates by cutting the sequence short after it has seen enough elements emitted. In
 short, `take()` causes the source to `cancel()` once it has emitted the user-requested
 amount.
+
+
+最后一行（4）是最有趣的。我们可以take在那里看到实际的效果。
+在看到足够多的元素发射之后，它会通过缩短序列来进行操作。简而言之，take()使源转变为cancel()的原因是让源发送完一次用户请求的数量。

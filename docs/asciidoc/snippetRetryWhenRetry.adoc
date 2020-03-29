@@ -11,10 +11,10 @@ Flux.<String>error(new IllegalArgumentException())
           })
     );
 ----
-<1> Trick one: use `zip` and a `range` of "number of acceptable retries + 1".
+<1> Trick one: use `zip` and a `range` of "number of acceptable retries + 1".	技巧一：使用zip和range“可接受的重试次数+ 1”
 <2> The `zip` function lets you count the retries while keeping track of the original
-error.
-<3> To allow for three retries, indexes before 4 return a value to emit.
+error.	该zip功能可让您计算重试次数，同时跟踪原始错误
+<3> To allow for three retries, indexes before 4 return a value to emit.为了允许进行三次重试，4之前的索引将返回一个要发出的值
 <4> In order to terminate the sequence in error, we throw the original exception after
-these three retries.
+these three retries. 为了终止错误的序列，我们在这三个重试之后抛出了原始异常
 ====

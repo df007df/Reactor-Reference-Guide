@@ -3,6 +3,8 @@
 
 This chapter covers advanced features and concepts of Reactor, including the following:
 
+本章介绍了Reactor的高级功能和概念，其中包括：
+
 * <<advanced-mutualizing-operator-usage>>
 * <<reactor.hotCold>>
 * <<advanced-broadcast-multiple-subscribers-connectableflux>>
@@ -22,6 +24,9 @@ patterns that can help you reuse and mutualize code, notably for operators or co
 of operators that you might want to apply regularly in your codebase. If you think of a
 chain of operators as a recipe, you can create a "`cookbook`" of operator recipes.
 
+从干净代码的角度来看，代码重用通常是一件好事。Reactor提供了一些模式，可以帮助您重用和互用代码，特别是对于您可能希望在代码库中定期应用的运算符或运算符组合。
+如果您将一连串的操作符视为配方，则可以创建一个“菜谱”操作符配方。
+
 === Using the `transform` Operator
 
 The `transform` operator lets you encapsulate a piece of an operator chain into a
@@ -29,6 +34,8 @@ function. That function is applied to an original operator chain at assembly tim
 augment it with the encapsulated operators. Doing so applies the same operations to all
 the subscribers of a sequence and is basically equivalent to chaining the operators
 directly. The following code shows an example:
+
+这个transform操作可让您封装了一块操作链成一个函数。该功能在组装时应用于原始运算符链，以使用封装的运算符进行扩充。这样做会将相同的操作应用于序列的所有订户，并且基本上等效于直接链接运算符。以下代码显示了一个示例：
 
 ====
 [source,java]
@@ -50,6 +57,8 @@ image::https://raw.githubusercontent.com/reactor/reactor-core/v3.0.7.RELEASE/src
 
 The preceding example produces the following output:
 
+前面的示例产生以下输出：
+
 ====
 ----
 blue
@@ -69,6 +78,9 @@ in a function. The major difference is that this function is applied to the orig
 sequence _on a per-subscriber basis_. It means that the function can actually produce a
 different operator chain for each subscription (by maintaining some state). The
 following code shows an example:
+
+transformDeferred运算符与transform类似，而且也可以让你在一个函数内封装运算符。主要区别在于，此功能按每个订阅者应用于原始序列。
+这意味着该函数实际上可以为每个订阅者生成一个不同的运算符链（通过维护某种状态）。以下代码显示了一个示例：
 
 ====
 [source,java]
@@ -124,13 +136,21 @@ purple
 So far, we have considered that all `Flux` (and `Mono`) are the same: They all represent
 an asynchronous sequence of data, and nothing happens before you subscribe.
 
+到目前为止，我们已经考虑到所有Flux（和Mono）都是相同的：它们都代表异步的数据序列，在您订阅之前什么也没有发生。
+
 Really, though, there are two broad families of publishers: hot and cold.
+
+不过，实际上，有两个广泛的发布者家族：热门和冷门。
 
 The earlier description applies to the cold family of publishers. They generate data anew
 for each subscription. If no subscription is created, data never gets generated.
 
+较早的描述适用于冷门的发布者系列。它们为每个订阅重新生成数据。如果没有创建订阅，则永远不会生成数据。
+
 Think of an HTTP request: Each new subscriber triggers an HTTP call, but no call is
 made if no one is interested in the result.
+
+考虑一下HTTP请求：每个新订户都会触发HTTP调用，但是如果没有人对结果感兴趣，则不会进行任何调用。
 
 Hot publishers, on the other hand, do not depend on any number of subscribers. They
 might start publishing data right away and would continue doing so whenever a new
@@ -138,18 +158,31 @@ might start publishing data right away and would continue doing so whenever a ne
 _after_ it subscribed). For hot publishers, _something_ does indeed happen before you
 subscribe.
 
+另一方面，热门发布者不依赖任何数量的订阅者。他们可能会开始发布数据的时候了，并会继续这样做，每当有新 Subscriber进来（在这种情况下，用户会看到其预约后发射的新元素）。
+对于热门发布者，在您订阅之前确实发生了某些事情。
+
 One example of the few hot operators in Reactor is `just`: It directly captures the value
 at assembly time and replays it to anybody subscribing to it later. To re-use the HTTP
 call analogy, if the captured data is the result of an HTTP call, then only one network
 call is made, when instantiating `just`.
 
+在Reactor中为数不多的热门运算符的一个示例是just：它直接在汇编时捕获值，然后将其重播给以后订阅该值的任何人。
+为了重用HTTP调用类比，如果捕获的数据是HTTP调用的结果，则在实例化时仅进行一个网络调用just。
+
 To transform `just` into a cold publisher, you can use `defer`. It defers the HTTP
 request in our example to subscription time (and would result in a separate network call
 for each new subscription).
 
+要转化just为冷发行商，您可以使用defer。它在我们的示例中将HTTP请求延迟了订阅时间（并会为每个新订阅导致单独的网络调用）。
+
 NOTE: Most other hot publishers in Reactor extend `Processor`.
 
+NOTE: Reactor中的大多数其他热门发行商都在扩展Processor。
+
+
 Consider two other examples. The following code shows the first example:
+
+考虑另外两个例子。以下代码显示了第一个示例：
 
 ====
 [source,java]
@@ -184,7 +217,11 @@ image::https://raw.githubusercontent.com/reactor/reactor-core/v3.0.7.RELEASE/src
 Both subscribers catch all four colors, because each subscriber causes the
 process defined by the operators on the `Flux` to run.
 
+两个订户都捕获全部四种颜色，因为每个订户都会导致Flux运行由操作符定义的过程。
+
 Compare the first example to the second example, shown in the following code:
+
+将第一个示例与第二个示例进行比较，如以下代码所示：
 
 ====
 [source,java]
@@ -229,6 +266,9 @@ two colors were produced, catches only the last two colors. This difference acco
 the doubling of `ORANGE` and `PURPLE` in the output. The process described by the
 operators on this Flux runs regardless of when subscriptions have been attached.
 
+订户1捕获所有四种颜色。在生成前两种颜色之后创建的订户2，仅捕获后两种颜色。
+这种差异导致输出ORANGE和的加倍PURPLE。无论何时附加订阅，运营商在此Flux上描述的过程都将运行。
+
 [[advanced-broadcast-multiple-subscribers-connectableflux]]
 == Broadcasting to Multiple Subscribers with `ConnectableFlux`
 
@@ -236,8 +276,12 @@ Sometimes, you may want to not defer only some processing to the subscription ti
 subscriber, but you might actually want for several of them to rendezvous and then
 trigger the subscription and data generation.
 
+有时，您可能不希望仅将某些处理推迟到一个订户的订阅时间，但实际上您可能希望其中的几个会合，然后触发订阅和数据生成。
+
 This is what `ConnectableFlux` is made for. Two main patterns are covered in the `Flux`
 API that return a `ConnectableFlux`: `publish` and `replay`.
+
+这是ConnectableFlux能做的。Flux API 中涵盖了两个主要模式，这些模式返回ConnectableFlux：publish和replay。
 
 * `publish` dynamically tries to respect the demand from its various subscribers, in
 terms of backpressure, by forwarding these requests to the source. Most notably, if any
@@ -245,9 +289,16 @@ subscriber has a pending demand of `0`, publish pauses its requesting to the sou
 * `replay` buffers data seen through the first subscription, up to configurable limits
 (in time and buffer size). It replays the data to subsequent subscribers.
 
+* publish通过将这些请求转发到源，动态地尝试在背压方面尊重其各个订户的需求。最值得注意的是，如果任何订阅者的需求待定0，发布会暂停其对源的请求
+* replay缓冲通过第一个订阅者看到的数据，直至可配置的限制（时间和缓冲区大小）。它将数据重放给后续的订户。
+
+
+
 A `ConnectableFlux` offers additional methods to manage subscriptions downstream
 versus subscriptions to the original source. These additional methods include the
 following:
+
+ConnectableFlux提供了其他方法来管理下游订阅，而不是原始来源的订阅。这些其他方法包括：
 
 * `connect()` can be called manually once you reach enough subscriptions to the `Flux`. That
 triggers the subscription to the upstream source.
@@ -260,6 +311,13 @@ subscribers appear.
 * `refCount(int, Duration)` adds a "`grace period.`" Once the number of tracked subscribers
 becomes too low, it waits for the `Duration` before disconnecting the source, potentially
 allowing for enough new subscribers to come in and cross the connection threshold again.
+
+
+* connect() 只要您订阅了足够的订阅，便可以手动调用Flux。这将触发对上游源的订阅。
+* autoConnect(n) 进行n次订阅后，可以自动执行相同的工作。
+* refCount(n)不仅会自动跟踪传入的订阅，还会检测何时取消这些订阅。如果跟踪的订户不足，则源将“断开连接”，如果出现其他订户，则会在以后导致对该源的新订阅。
+* refCount(int, Duration)添加了“宽限期”。一旦被跟踪的订户数量变得太少，它将Duration在断开源连接之前等待，可能允许足够的新订户进入并再次超过连接阈值。
+
 
 Consider the following example:
 
@@ -340,27 +398,42 @@ broad solutions in Reactor: grouping, windowing, and buffering. These three are
 conceptually close, because they redistribute a `Flux<T>` into an aggregate. Grouping and
 windowing create a `Flux<Flux<T>>`, while buffering aggregates into a `Collection<T>`.
 
+当您有很多元素并且想要将它们分成批处理时，Reactor中提供了三种广泛的解决方案：分组，窗口化和缓冲。这三个在概念上很接近，因为它们将重新分配Flux<T>为一个集合。
+分组和开窗创建一个Flux<Flux<T>>，同时将聚合缓冲到一个Collection<T>。
+
 === Grouping with `Flux<GroupedFlux<T>>`
 
 Grouping is the act of splitting the source `Flux<T>` into multiple batches, each of which
 matches a key.
 
+分组是将源Flux<T>分成多个批次的操作，每个批次与一个密钥匹配。
+
 The associated operator is `groupBy`.
+
+关联的运算符为groupBy。
 
 Each group is represented as a `GroupedFlux<T>`, which lets you retrieve the key by calling its
 `key()` method.
+
+每个组均以表示GroupedFlux<T>，您可以通过调用其key()方法来检索密钥 。
 
 There is no necessary continuity in the content of the groups. Once a source element
 produces a new key, the group for this key is opened and elements that match the key end
 up in the group (several groups could be open at the same time).
 
+组的内容没有必要的连续性。一旦源元素生成新密钥，就会打开该密钥的组，并且与该密钥匹配的元素最终出现在该组中（可以同时打开几个组）。
+
+
+
 This means that groups:
 
- 1. Are always disjoint (a source element belongs to one and only one group).
- 2. Can contain elements from different places in the original sequence.
- 3. Are never empty.
+ 1. Are always disjoint (a source element belongs to one and only one group).终不相交（源元素属于一个且仅属于一组）。
+ 2. Can contain elements from different places in the original sequence.可以包含原始序列中不同位置的元素。
+ 3. Are never empty.永远不会空着。
 
 The following example groups values by whether they are even or odd:
+
+下面的示例按值是偶数还是奇数对值进行分组：
 
 ====
 [source,java]
@@ -384,16 +457,25 @@ continues fetching data from upstream and feeding more groups. Sometimes, these 
 constraints multiply and lead to hangs, such as when you have a high cardinality and the
 concurrency of the `flatMap` consuming the groups is too low.
 
+WARNING: 分组最适合中小数量的组。还必须强制使用组（例如通过flatMap），以便groupBy 继续从上游获取数据并提供更多组。
+有时，这两个约束会倍增并导致挂起，例如，当您具有高基数并且flatMap使用组的并发性太低时。
+
 === Windowing with `Flux<Flux<T>>`
 
 Windowing is the act of splitting the source `Flux<T>` into _windows_, by criteria of
 size, time, boundary-defining predicates, or boundary-defining `Publisher`.
 
+窗口化是根据大小，时间，边界定义或边界定义的标准将源分割Flux<T>为窗口的行为的Publisher。
+
 The associated operators are `window`, `windowTimeout`, `windowUntil`, `windowWhile`, and
 `windowWhen`.
 
+相关的操作符是 window，windowTimeout，windowUntil，windowWhile，和 windowWhen。
+
 Contrary to `groupBy`, which randomly overlaps according to incoming keys,
 windows are (most of the time) opened sequentially.
+
+与相对groupBy，根据输入键随机重叠。窗口（大部分时间）是按顺序打开的。
 
 Some variants can still overlap, though. For instance, in `window(int maxSize, int skip)`
 the `maxSize` parameter is the number of elements after which a window
@@ -401,7 +483,12 @@ closes, and the `skip` parameter is the number of elements in the source after w
 new window is opened. So if `maxSize > skip`, a new window opens before the previous one
 closes and the two windows overlap.
 
+但是，某些变体仍然可以重叠。例如，在window(int maxSize, int skip) 该maxSize参数是窗口达到元件的数量之后关闭，并且所述skip参数是源元件的数量达到后在打开一个新的窗口。
+因此，如果maxSize > skip打开一个新窗口，则在前一个窗口关闭之前，这两个窗口会重叠。
+
 The following example shows overlapping windows:
+
+以下示例显示了重叠的窗口：
 
 ====
 [source,java]
@@ -422,9 +509,16 @@ StepVerifier.create(
 NOTE: With the reverse configuration (`maxSize` < `skip`), some elements from
 the source are dropped and are not part of any window.
 
+NOTE: 如果使用相反的配置（maxSize< skip），则会删除源中的某些元素，它们不属于任何窗口。
+
+
 In the case of predicate-based windowing through `windowUntil` and `windowWhile`,
 having subsequent source elements that do not match the predicate can also lead
 to empty windows, as demonstrated in the following example:
+
+在通过“ windowUntil”和“ windowWhile”进行基于谓词的窗口化的情况下，
+后续源元素与断言不匹配也可能导致
+如以下示例所示，关闭空窗口：
 
 ====
 [source,java]
@@ -448,15 +542,24 @@ Buffering is similar to windowing, with the following twist: Instead of emitting
 _windows_ (each of which is each a `Flux<T>`), it emits _buffers_ (which are `Collection<T>`
 -- by default, `List<T>`).
 
+缓冲类似于加窗，但有以下不同：而不是发出 窗口（每个窗口都是 Flux<T>），而是发出缓冲区（Collection<T> 默认为List<T>）。
+
 The operators for buffering mirror those for windowing: `buffer`, `bufferTimeout`,
 `bufferUntil`, `bufferWhile`, and `bufferWhen`.
+
+用于缓冲的操作符反映出像窗口的性质，比如：buffer，bufferTimeout， bufferUntil，bufferWhile，和bufferWhen。
 
 Where the corresponding windowing operator opens a window, a buffering operator creates a
 new collection and starts adding elements to it. Where a window closes, the buffering
 operator emits the collection.
 
+在相应的窗口运算符打开一个窗口的地方，一个缓冲运算符创建一个新的集合并开始向其中添加元素。
+在窗口关闭的地方，缓冲运算符发出集合。
+
 Buffering can also lead to dropping source elements or having overlapping buffers, as
 the following example shows:
+
+缓冲还会导致源元素丢失或缓冲区重叠，如以下示例所示：
 
 ====
 [source,java]
@@ -475,6 +578,8 @@ StepVerifier.create(
 
 Unlike in windowing, `bufferUntil` and `bufferWhile` do not emit an empty buffer, as
 the following example shows:
+
+不同于在窗口中，bufferUntil并且bufferWhile不发出空缓冲区，如以下示例所示：
 
 ====
 [source,java]
@@ -496,13 +601,22 @@ With multi-core architectures being a commodity nowadays, being able to easily
 parallelize work is important. Reactor helps with that by providing a special type,
 `ParallelFlux`, that exposes operators that are optimized for parallelized work.
 
+如今，随着多核体系结构成为一种商品，能够轻松并行化工作非常重要。
+Reactor通过提供一种特殊类型来帮助实现这一点，该类型 ParallelFlux公开了针对并行工作进行了优化的运算符。
+
 To obtain a `ParallelFlux`, you can use the `parallel()` operator on any `Flux`.
 By itself, this method does not parallelize the work. Rather, it divides
 the workload into "`rails`" (by default, as many rails as there are CPU cores).
 
+要获取 ParallelFlux，您可以parallel()在任意位置使用运算符Flux。就其本身而言，此方法不会使工作并行化。
+相反，它将工作负载划分为“ rails”（默认情况下，与CPU内核一样多的rails）。
+
 In order to tell the resulting `ParallelFlux` where to run each rail (and, by
 extension, to run rails in parallel) you have to use `runOn(Scheduler)`. Note that
 there is a recommended dedicated `Scheduler` for parallel work: `Schedulers.parallel()`.
+
+为了告诉最终结果ParallelFlux，每个导轨都在哪里运行（并扩展为并行运行导轨），您必须使用runOn(Scheduler)。
+需要注意的是有一个推荐的专用Scheduler并行工作：Schedulers.parallel()。
 
 Compare the next two examples:
 
@@ -513,7 +627,7 @@ Flux.range(1, 10)
     .parallel(2) //<1>
     .subscribe(i -> System.out.println(Thread.currentThread().getName() + " -> " + i));
 ----
-<1> We force a number of rails instead of relying on the number of CPU cores.
+<1> We force a number of rails instead of relying on the number of CPU cores. 我们强制使用多个导轨，而不是依赖于CPU内核的数量。
 ====
 
 ====
@@ -527,6 +641,7 @@ Flux.range(1, 10)
 ====
 
 The first example produces the following output:
+
 
 ====
 ----
@@ -544,6 +659,8 @@ main -> 10
 ====
 
 The second correctly parallelizes on two threads, as shown in the following output:
+
+第二个在两个线程上正确并行化，如以下输出所示：
 
 ====
 ----
@@ -564,16 +681,25 @@ If, once you process your sequence in parallel, you want to revert back to a "`n
 `Flux` and apply the rest of the operator chain in a sequential manner, you can use the
 `sequential()` method on `ParallelFlux`.
 
+如果在并行处理序列后想要恢复为“正常” Flux并以顺序方式应用其余运算符链，则可以在ParallelFlux上使用sequential()方法。
+
 Note that `sequential()` is implicitly applied if you `subscribe` to the `ParallelFlux`
 with a `Subscriber` but not when using the lambda-based variants of `subscribe`.
+
+请注意，sequential()是隐式应用，如果你subscribe到ParallelFlux 了Subscriber使用基于lambda时，但不是subscribe。
 
 Note also that `subscribe(Subscriber<T>)` merges all the rails, while
 `subscribe(Consumer<T>)` runs all the rails. If the `subscribe()` method has a lambda,
 each lambda is executed as many times as there are rails.
 
+还要注意，subscribe(Subscriber<T>)合并所有导轨，同时 subscribe(Consumer<T>)运行所有导轨。
+如果该subscribe()方法具有lambda，则每个lambda的执行次数将与rails一样多。
+
 You can also access individual rails or "`groups`" as a `Flux<GroupedFlux<T>>` through the
 `groups()` method and apply additional operators to them through the `composeGroup()`
 method.
+
+您也可以Flux<GroupedFlux<T>>通过groups()方法访问单个导轨或“组”，并通过该 方法向它们应用其他运算符composeGroup() 。
 
 [[scheduler-factory]]
 == Replacing Default `Schedulers`
@@ -584,9 +710,15 @@ factory methods, each `Scheduler` flavor also has a default singleton instance t
 accessible through the direct factory method (such as `Schedulers.boundedElastic()` versus
 `Schedulers.newBoundedElastic(...)`).
 
+如我们在“ 线程和调度程序”部分所述，Reactor Core附带了几种 Scheduler实现。
+尽管您始终可以通过new* 工厂方法创建新实例，但是每个Scheduler风味还具有默认的单例实例，可通过直接工厂方法（例如Schedulers.boundedElastic()vs Schedulers.newBoundedElastic(…​)）进行访问。
+
 These default instances are the ones used by operators that need a `Scheduler` to work
 when you do not explicitly specify one. For example, `Flux#delayElements(Duration)` uses
 the `Schedulers.parallel()` instance.
+
+这些默认实例是Scheduler未明确指定实例时需要工作的运算符所使用的实例。
+例如，Flux#delayElements(Duration)使用Schedulers.parallel()实例。
 
 In some cases, however, you might need to change these default instances with something
 else in a cross-cutting way, without having to make sure every single operator you call
@@ -594,27 +726,44 @@ has your specific `Scheduler` as a parameter. An example is measuring the time e
 single scheduled task takes by wrapping the real schedulers, for instrumentation
 purposes. In other words, you might want to change the default `Schedulers`.
 
+但是，在某些情况下，您可能需要以交叉方式使用其他默认值来更改这些默认实例，而不必确保调用的每个运算符都将自己的特定Scheduler参数作为参数。
+一个示例是通过包装实际的计划程序来测量每个计划的任务所花费的时间，以进行检测。换句话说，您可能想要更改默认的Schedulers。
+
 Changing the default schedulers is possible through the `Schedulers.Factory` class. By
 default, a `Factory` creates all the standard `Scheduler` through similarly named
 methods. You can override each of these with your custom implementation.
+
+通过Schedulers.Factory该类可以更改默认调度程序。
+默认情况下，`Factory` 通过相似命名的方法创建所有标准Scheduler。您可以使用自定义实现覆盖其中的每一个。
 
 Additionally, the factory exposes one additional customization method:
 `decorateExecutorService`. It is invoked during the creation of every Reactor Core
 `Scheduler` that is backed by a `ScheduledExecutorService` (even non-default instances,
 such as those created by calls to `Schedulers.newParallel()`).
 
+此外，工厂还公开了另一种自定义方法： decorateExecutorService。
+在创建每个Scheduler由ScheduledExecutorService（作为非默认实例，例如通过调用创建的实例）支持的Reactor Core的过程中调用它 Schedulers.newParallel()。
+
 This lets you tune the `ScheduledExecutorService` to be used: The default one is exposed
 as a `Supplier` and, depending on the type of `Scheduler` being configured, you can choose
 to entirely bypass that supplier and return your own instance or you can `get()` the
 default instance and wrap it.
 
+这使您可以调整ScheduledExecutorService要使用的：默认实例显示为一个Supplier并且根据Scheduler配置的类型，
+您可以选择完全绕过该提供并返回自己的实例，也可以为get()将选择的默认实例包装并将其返回。
+
 IMPORTANT: Once you create a `Factory` that fits your needs, you must install it by calling
 `Schedulers.setFactory(Factory)`.
+
+IMPORTANT: 创建Factory适合您需求的软件后，您必须通过调用进行安装 Schedulers.setFactory(Factory)。
 
 Finally, there is a last customizable hook in `Schedulers`: `onHandleError`. This hook is
 invoked whenever a `Runnable` task submitted to a `Scheduler` throws an `Exception` (note
 that if there is an `UncaughtExceptionHandler` set for the `Thread` that ran the task,
 both the handler and the hook are invoked).
+
+最后，还有最后一个可定制的钩子Schedulers：onHandleError。
+每当Runnable提交给Scheduler引发任务的任务抛出异常时，都会调用此挂钩Exception（请注意，如果有运行该任务的UncaughtExceptionHandler集合，则将Thread同时调用处理程序和挂钩）。
 
 [[hooks]]
 == Using Global Hooks
@@ -622,6 +771,8 @@ both the handler and the hook are invoked).
 Reactor has another category of configurable callbacks that are invoked by Reactor
 operators in various situations. They are all set in the `Hooks` class, and they fall into
 three categories:
+
+Reactor具有另一类可配置的回调，可在各种情况下由Reactor运算符调用。它们全都设置在Hooks 类中，分为三类：
 
 * <<hooks-dropping>>
 * <<hooks-internal>>
@@ -634,17 +785,28 @@ Dropping hooks are invoked when the source of an operator does not comply with t
 Reactive Streams specification. These kind of errors are outside of the normal execution
 path (that is, they cannot be propagated through `onError`).
 
+当操作员的来源不符合Reactive Streams规范时，将调用吊钩。这些类型的错误不在正常的执行路径之内（也就是说，它们不能通过传播onError）。
+
 Typically, a `Publisher` calls `onNext` on the operator despite having already called
 `onCompleted` on it previously. In that case, the `onNext` value is dropped. The same
 is true for an extraneous `onError` signal.
+
+通常，尽管先前已经在运算符上进行了Publisher调用onNext，但仍在对运算符进行调用 onCompleted。
+在这种情况下，该onNext值将被删除。外部onError信号也是如此。
 
 The corresponding hooks, `onNextDropped` and `onErrorDropped`, let you provide a global
 `Consumer` for these drops. For example, you can use it to log the drop and clean up
 resources associated with a value if needed (as it never makes it to the rest of the
 reactive chain).
 
+相应的钩子onNextDropped和onErrorDropped允许您Consumer为这些放置提供全局 变量。
+例如，您可以使用它来记录删除操作，并在需要时清理与某个值关联的资源（因为它永远不会到达响应链的其余部分）。
+
 Setting the hooks twice in a row is additive: every consumer you provide is invoked. The
 hooks can be fully reset to their defaults by using the `Hooks.resetOn*Dropped()` methods.
+
+连续两次设置钩子是附加的：您提供的每个使用者都将被调用。
+可以使用这些Hooks.resetOn*Dropped()方法将挂钩完全重置为默认值。
 
 [[hooks-internal]]
 === Internal Error Hook
@@ -652,23 +814,40 @@ hooks can be fully reset to their defaults by using the `Hooks.resetOn*Dropped()
 One hook, `onOperatorError`, is invoked by operators when an unexpected `Exception` is
 thrown during the execution of their `onNext`, `onError`, and `onComplete` methods.
 
+一个钩，onOperatorError是由操作员当一意外的调用Exception其执行期间被抛出onNext，onError和onComplete方法。
+
 Unlike the previous category, this is still within the normal execution path. A typical
 example is the `map` operator with a map function that throws an `Exception` (such as
 division by zero). It is still possible at this point to go through the usual channel of
 `onError`, and that is what the operator does.
 
+与之前的类别不同，这仍然在常规执行路径之内。一个典型的例子是map带有一个映射函数的运算符，该运算符抛出一个Exception（例如被零除）。
+在这一点上，仍然有可能通过的常规渠道在 onError，而这正是操作员所要做的。
+
+
 First, it passes the `Exception` through `onOperatorError`. The hook lets you inspect the
 error (and the incriminating value, if relevant) and change the `Exception`. Of course,
 you can also do something on the side, such as log and return the original `Exception`.
+
+首先，它准许Exception通过onOperatorError。该挂钩可让您检查错误（以及相关值），并更改Exception。
+当然，您也可以在侧面执行一些操作，例如log并返回original Exception。
+
 
 Note that you can set the `onOperatorError` hook multiple times. You can provide a
 `String` identifier for a particular `BiFunction` and subsequent calls with different
 keys concatenates the functions, which are all executed. On the other hand, reusing the
 same key twice lets you replace a function you previously set.
 
+请注意，您可以onOperatorError多次设置挂钩。您可以String为一个特定的标识符提供 标识符BiFunction，随后的调用将使用不同的键将这些函数串联起来，这些函数将全部执行。
+另一方面，重复使用同一键两次可让您替换以前设置的功能。
+
+
 As a consequence, the default hook behavior can be both fully reset (by using
 `Hooks.resetOnOperatorError()`) or partially reset for a specific `key` only (by using
 `Hooks.resetOnOperatorError(String)`).
+
+因此，默认挂钩行为既可以完全重置（通过使用Hooks.resetOnOperatorError()），也可以 key仅针对特定的部分重置（通过使用 Hooks.resetOnOperatorError(String)）。
+
 
 [[hooks-assembly]]
 === Assembly Hooks
@@ -679,19 +858,30 @@ operator as it is assembled in the chain, by returning a different `Publisher`.
 `onLastOperator` is similar, except that it is invoked only on the last operator in the
 chain before the `subscribe` call.
 
+这些挂钩关系到操作符的生命周期。在组装（即实例化）一系列操作符时调用它们。onEachOperator通过返回不同的，可以动态更改链中组装的每个运算符Publisher。
+ onLastOperator与之类似，除了它仅在调用subscribe之前在链中的最后一个运算符上才执行。
+
 If you want to decorate all operators with a cross-cutting `Subscriber` implementation,
 you can look into the `Operators#lift*` methods to help you deal with the various
 types of Reactor `Publishers` out there (`Flux`, `Mono`, `ParallelFlux`, `GroupedFlux`, and `ConnectableFlux`),
 as well as their `Fuseable` versions.
 
+如果您想使用跨领域的Subscriber实现来装饰所有运算符，您可以查看“ Operators＃lift *”方法来帮助您处理各种
+那里的反应堆“Publishers”的类型（“Flux”，“Mono”，“ParallelFlux”，“GroupedFlux”和“ConnectableFlux”），
+以及它们的“Fuseable”版本。
+
 Like `onOperatorError`, these hooks are cumulative and can be identified with a key. They
 can also be reset partially or totally.
+
+像一样onOperatorError，这些钩子是累积的，可以用一个密钥标识。它们也可以部分或全部重置。
 
 === Hook Presets
 
 The `Hooks` utility class provides two preset hooks. These are alternatives to
 the default behaviors that you can use by calling their corresponding method, rather than
 coming up with the hook yourself:
+
+这 Hooks工具类提供两个预置钩。这些是默认行为的替代方法，您可以通过调用它们的相应方法来使用这些默认行为，而不用亲自实现该钩子：
 
 * `onNextDroppedFail()`: `onNextDropped` used to throw a `Exceptions.failWithCancel()`
 exception. It now defaults to logging the dropped value at the DEBUG level. To go back to
@@ -702,6 +892,9 @@ the `onOperatorError` hook, so calling `resetOnOperatorError()` also resets it. 
 independently reset it by using  `resetOnOperatorDebug()`, as it uses a specific key internally.
 
 
+* onNextDroppedFail()：onNextDropped用于引发Exceptions.failWithCancel() 异常。现在，它默认在DEBUG级别记录下降的值。要返回原来的默认抛出行为，请使用onNextDroppedFail()。
+* onOperatorDebug()：此方法激活调试模式。它与onOperatorError挂钩相关，因此调用resetOnOperatorError()也将其重置。您可以使用来独立重置它 resetOnOperatorDebug()，因为它在内部使用了特定的密钥。
+
 [[context]]
 == Adding a Context to a Reactive Sequence
 
@@ -709,10 +902,15 @@ One of the big technical challenges encountered when switching from an imperativ
 programming perspective to a reactive programming mindset lies in how you deal with
 threading.
 
+从命令式编程视角转换为反应式编程思维方式时遇到的重大技术挑战之一是如何处理线程。
+
 Contrary to what you might be used to, in reactive programming, you can use a `Thread`
 to process several asynchronous sequences that run at roughly the same time (actually, in
 non-blocking locksteps). The execution can also easily and often jump from one thread to
 another.
+
+与您习惯的反应式编程相反，您可以使用`Thread`处理几个大致同时运行的异步序列（实际上，非阻塞的锁步）。
+执行也可以轻松且经常从一个线程跳转到另一个。
 
 This arrangement is especially hard for developers that use features dependent on the
 threading model being more "`stable,`" such as `ThreadLocal`. As it lets you associate
@@ -721,17 +919,27 @@ libraries that rely on `ThreadLocal` at least introduce new challenges when used
 Reactor. At worst, they work badly or even fail. Using the MDC of Logback to store and
 log correlation IDs is a prime example of such a situation.
 
+对于使用依赖于线程模型上开发更“稳定”的功能这种安排尤其困难。比如ThreadLocal。因为它使您可以将数据与线程相关联，所以在反应式上下文中使用它变得棘手。
+ThreadLocal与Reactor一起使用时，至少依赖的库会带来新的挑战。在最坏的情况下，它们会表现不佳甚至失败。
+使用Logback的MDC存储和记录相关ID是这种情况的主要示例。
+
 The usual workaround for `ThreadLocal` usage is to move the contextual data, `C`, along
 your business data, `T`, in the sequence, by using (for instance) `Tuple2<T, C>`. This does
 not look good and leaks an orthogonal concern (the contextual data) into your method and
 `Flux` signatures.
 
+使用的通常解决方法ThreadLocal是使用（例如）按顺序移动上下文数据C和业务数据。这看起来不好，并且将正交关注点（上下文数据）泄漏到您的方法和 签名中。TTuple2<T, C>Flux
+
 Since version `3.1.0`, Reactor comes with an advanced feature that is somewhat comparable
 to `ThreadLocal` but can be applied to a `Flux` or a `Mono` instead of a `Thread`.
 This feature is called `Context`.
 
+从版本开始3.1.0，Reactor带有一项先进的功能，在某种程度上可以与ThreadLocal媲美，但可以应用于Flux或Mono代替Thread。此功能称为Context。
+
 As an illustration of what it looks like, the following example both writes from and
 writes to `Context`:
+
+为了说明其外观，以下示例同时写入和写入Context：
 
 ====
 [source,java]
@@ -751,15 +959,21 @@ StepVerifier.create(r)
 In the following sections, we cover `Context` and how to use it, so that you
 can eventually understand the preceding example.
 
+在以下各节中，我们介绍Context了它以及如何使用它，以便您最终可以理解前面的示例。
+
 IMPORTANT: This is an advanced feature that is more targeted at library developers. It
 requires good understanding of the lifecycle of a `Subscription` and is intended for
 libraries that are responsible for the subscriptions.
+
+IMPORTANT: 这是一项高级功能，更面向库开发人员。它需要对Subscription的生命周期有很好的了解，并且适用于负责订阅的库。
 
 [[context.api]]
 === The `Context` API
 
 `Context` is an interface reminiscent of `Map`.It stores key-value pairs and lets you
 fetch a value you stored by its key. More specifically:
+
+Context是一个让人想起的接口。Map它存储键值对，并允许您获取通过其键存储的值。进一步来说：
 
 * Both key and values are of type `Object`, so a `Context` instance can contain any number of
 highly divergent values from different libraries and sources.
@@ -775,6 +989,14 @@ stored value to `T`).
 * Use `delete(Object key)` to remove the value associated to a key, returning a new
 `Context`.
 
+* 键和值都是类型Object，因此Context实例可以包含来自不同库和源的任意数量的高度不同的值。
+* Context是不可变的。
+* 使用put(Object key, Object value)存储一个键值对，返回一个新的 Context实例。您还可以使用将两个上下文合并到一个新的上下文中 putAll(Context)。
+* 您可以检查密钥是否存在hasKey(Object key)。
+* 使用getOrDefault(Object key, T defaultValue)检索值（强制转换为T），或退回到一个默认的，如果Context实例没有这把钥匙。
+* 使用getOrEmpty(Object key)得到的Optional<T>（该Context实例尝试投的存储值T）。
+* 使用delete(Object key)删除关联到一个键的值，返回一个新的 Context。
+
 [TIP]
 ====
 When you create a `Context`, you can create pre-valued `Context` instances with up to five
@@ -782,7 +1004,13 @@ key-value pairs by using the static `Context.of` methods. They take 2, 4, 6, 8 o
 `Object` instances, each couple of `Object` instances being a key-value pair to add to
 the `Context`.
 
+创建时Context，您可以Context使用静态Context.of方法创建最多包含五个键值对的预值实例。
+它们需要2、4、6、8或10个 Object实例，每对Object实例都是要添加到的键值对Context。
+
 Alternatively you can also create an empty `Context` by using `Context.empty()`.
+
+或者，您也可以Context使用创建空白Context.empty()。
+
 ====
 
 [[context.write]]
@@ -792,23 +1020,36 @@ To make a `Context` be useful, it must be tied to a specific sequence and be acc
 each operator in a chain. Note that the operator must be a Reactor-native operator, as
 `Context` is specific to Reactor.
 
+为了使它Context有用，它必须绑定到特定的序列，并且链中的每个操作员都可以访问。
+请注意，运算符必须是Reactor本机运算符，这 Context是特定于Reactor的。
+
 Actually, a `Context` is tied to each `Subscriber` in a chain. It uses the `Subscription`
 propagation mechanism to make itself available to each operator, starting with the final
 `subscribe` and moving up the chain.
 
+实际上，Context是绑定在链中的每一个Subscriber。它使用Subscription 传播机制使每个操作员都可以使用，从最终操作开始， subscribe然后向上移动。
+
 In order to populate the `Context`, which can only be done at subscription time, you need
 to use the `subscriberContext` operator.
+
+为了填充Context只能在订阅进行时去完成，您需要使用subscriberContext运算符。
 
 `subscriberContext(Context)` merges the `Context` you provide and the
 `Context` from downstream (remember, the `Context` is propagated from the bottom of the
 chain towards the top). This is done through a call to `putAll`, resulting in a new
 `Context` for upstream.
 
+subscriberContext(Context)合并Context您提供的内容和 Context来自下游的内容（请记住，Context是从链的底部向顶部传播的）。
+这是通过调用来完成的putAll，从而为上游创建了一个新的 Context。
+
 TIP: You can also use the more advanced `subscriberContext(Function<Context, Context>)`.
 It receives the state of the `Context` from downstream, lets you put or delete values
 as you see fit, and returns the new `Context` to use. You can even decide to return a
 completely different instance, although it is really not recommended (doing so might
 impact third-party libraries that depend on the `Context`).
+
+TIP: 您也可以使用更高级的subscriberContext(Function<Context, Context>)。
+它Context从下游接收的状态，让您根据需要放置或删除值，并返回Context要使用的新值。您甚至可以决定返回一个完全不同的实例，尽管实际上不建议这样做（这样做可能会影响依赖的第三方库Context）。
 
 [[context.read]]
 === Reading a `Context`
@@ -818,16 +1059,24 @@ Most of the time, the responsibility of putting information into the `Context`
 is on the end user's side, while exploiting that information is on the third-party library's side,
 as such libraries are usually upstream of the client code.
 
+填充后Context，您可以检索该数据。在大多数情况下，将信息放入的责任Context 在最终用户一方，而利用信息的责任在第三方库的一方，因为此类库通常位于客户端代码的上游。
+
 The tool for reading data from the context is the static `Mono.subscriberContext()`
 method.
+
+从上下文读取数据的工具的静态方法是 Mono.subscriberContext() 。
 
 === Simple `Context` Examples
 
 The examples in this section are meant as ways to better understand some of the caveats of
 using a `Context`.
 
+本节中的示例旨在更好地理解使用Context。
+
 We first look back at our simple example from the introduction in a bit more detail, as
 the following example shows:
+
+首先，我们将更详细地回顾一下引言中的简单示例，如以下示例所示：
 
 ====
 [source,java]
@@ -843,11 +1092,11 @@ StepVerifier.create(r)
             .verifyComplete();
 ----
 <1> The chain of operators ends with a call to `subscriberContext(Function)` that puts
-`"World"` into the `Context` under a key of `"message"`.
-<2> We `flatMap` on the source element, materializing the `Context` with `Mono.subscriberContext()`.
+`"World"` into the `Context` under a key of `"message"`. 	运算符链的结尾是对的调用，subscriberContext(Function)该 调用"World"放入的Context密钥下"message"。
+<2> We `flatMap` on the source element, materializing the `Context` with `Mono.subscriberContext()`. 我们flatMap在源元素上，Context用 Mono.subscriberContext()实现。
 <3> We then use `map` to extract the data associated to `"message"` and concatenate that with
-the original word.
-<4> The resulting `Mono<String>` emits `"Hello World"`.
+the original word. 然后map，我们用于提取"message"与原始单词相关联的数据并将其与原始单词连接。
+<4> The resulting `Mono<String>` emits `"Hello World"`. 结果Mono<String>发出"Hello World"。
 ====
 
 IMPORTANT: The numbering above versus the actual line order is not a mistake. It represents
@@ -855,10 +1104,14 @@ the execution order. Even though `subscriberContext` is the last piece of the ch
 the one that gets executed first (due to its subscription-time nature and the fact that
 the subscription signal flows from bottom to top).
 
+IMPORTANT: 上面的编号与实际的行顺序没有关系。它代表执行顺序。即使subscriberContext是链的最后一部分，它也是第一个被执行的（由于其订阅时间的性质以及订阅信号从下到上流动的事实）。
+
 IMPORTANT: In your chain of operators, the relative positions of where you write to the
 `Context` and where you read from it matters. The `Context`
 is immutable and its content can only be seen by operators above it, as demonstrated in
 the following example:
+
+IMPORTANT: 在您的链中，您向链中写入位置的Context和从中读取的位置的相对位置很重要。因为Context 是不可变的，它的内容只能由上面运算符看出，如在下面的例子所示：
 
 ====
 [source,java]
@@ -873,14 +1126,16 @@ StepVerifier.create(r)
             .expectNext("Hello Stranger") //<3>
             .verifyComplete();
 ----
-<1> The `Context` is written to too high in the chain.
+<1> The `Context` is written to too high in the chain. 	在Context被写入链太高。
 <2> As a result, in the `flatMap`, there is no value associated with our key. A default value
-is used instead.
-<3> The resulting `Mono<String>` thus emits `"Hello Stranger"`.
+is used instead. 结果，在中flatMap，没有与我们的密钥关联的值。而是使用默认值。
+<3> The resulting `Mono<String>` thus emits `"Hello Stranger"`. 结果Mono<String>由此发出"Hello Stranger"。
 ====
 
 The following example also demonstrates the immutable nature of the `Context`, and how
 `Mono.subscriberContext()` always returns the `Context` set by `subscriberContext` calls:
+
+以下示例还演示了的不变性质Context，以及 Mono.subscriberContext()如何始终通过subscriberContext调用返回Context集合：
 
 ====
 [source,java]
@@ -896,16 +1151,19 @@ StepVerifier.create(r)
 	.expectNext("Default") // <5>
 	.verifyComplete();
 ----
-<1> We materialize the `Context`
-<2> In a `map` we attempt to mutate it
-<3> We re-materialize the `Context` in a `flatMap`
-<4> We read the attempted key in the `Context`
-<5> The key was never set to `"Hello"`.
+<1> We materialize the `Context` 我们实现 Context
+<2> In a `map` we attempt to mutate it 在map我们尝试更新它
+<3> We re-materialize the `Context` in a `flatMap` 	我们重新实现Context了flatMap
+<4> We read the attempted key in the `Context` 我们读取Context中的值
+<5> The key was never set to `"Hello"`. 密钥从未设置为"Hello"。
 ====
 
 Similarly, in the case of several attempts to write the same key to the `Context`, the
 relative order of the writes matters, too. Operators that read the `Context` see
 the value that was set closest to being under them, as demonstrated in the following example:
+
+同样，在多次尝试向写入相同密钥的情况下，写入Context的相对顺序也很重要。
+读取Contextsee的运算符将看到设置为最接近其值的值，如以下示例所示：
 
 ====
 [source,java]
@@ -921,9 +1179,10 @@ StepVerifier.create(r)
             .expectNext("Hello Reactor") //<3>
             .verifyComplete();
 ----
-<1> A write attempt on key `"message"`.
-<2> Another write attempt on key `"message"`.
-<3> The `map` only saw the value set closest to it (and below it): `"Reactor"`.
+<1> A write attempt on key `"message"`. 对key的写尝试"message"。
+<2> Another write attempt on key `"message"`. 对key的另一次写尝试"message"。
+<3> The `map` only saw the value set closest to it (and below it): `"Reactor"`. 该map只看见值最接近的设置为它（和它下面）"Reactor"。
+
 ====
 
 In the preceding example, the `Context` is populated with `"World"` during subscription.
@@ -932,9 +1191,15 @@ second immutable `Context` with a value of `"Reactor"`. After that, data starts 
 The `flatMap` sees the `Context` closest to it, which is our second `Context` with the
 `"Reactor"` value.
 
+在前面的示例中，在订阅期间Context填充"World"。然后，订阅信号向上游移动，并发生另一次写操作。这将产生第二个不可变Context值"Reactor"。
+之后，数据开始流动。在flatMap看到Context最接近于它，这是我们第二次Context与 "Reactor"价值。
+
 You might wonder if the `Context` is propagated along with the data signal. If that was
 the case, putting another `flatMap` between these two writes would use the value from
 the top `Context`. But this is not the case, as demonstrated by the following example:
+
+您可能想知道Context是否随数据信号一起传播。如果是这种情况，flatMap在这两次写入之间放置另一个将使用最顶上的Context值。
+但这不是事实，如以下示例所示：
 
 ====
 [source,java]
@@ -952,18 +1217,22 @@ StepVerifier.create(r)
             .expectNext("Hello Reactor World") //<5>
             .verifyComplete();
 ----
-<1> This is the first write to happen.
-<2> This is the second write to happen.
-<3> The first `flatMap` sees second write.
-<4> The second `flatMap` concatenates the result from first one with the value from the first write.
-<5> The `Mono` emits `"Hello Reactor World"`.
+<1> This is the first write to happen. 这是第一次写入。
+<2> This is the second write to happen. 这是第二次写入。
+<3> The first `flatMap` sees second write. 	第一个flatMap看到第二个写
+<4> The second `flatMap` concatenates the result from first one with the value from the first write. 第二个flatMap将第一个结果与第一次写入的值连接在一起。
+<5> The `Mono` emits `"Hello Reactor World"`. 该Mono发射"Hello Reactor World"。
 ====
 
 The reason is that the `Context` is associated to the `Subscriber` and each operator
 accesses the `Context` by requesting it from its downstream `Subscriber`.
 
+原因是“Context”与“Subscriber”和每个运算符相关联，通过从其下游的“Subscriber”中请求来访问“Context”。
+
 One last interesting propagation case is the one where the `Context` is also written to
 inside a `flatMap`, as in the following example:
+
+最后一种有趣的传播情况是将“Context”也写入其中的情况在“ flatMap”中，如以下示例所示：
 
 ====
 [source,java]
@@ -984,8 +1253,8 @@ StepVerifier.create(r)
             .expectNext("Hello World Reactor")
             .verifyComplete();
 ----
-<1> This `subscriberContext` does not impact anything outside of its `flatMap`.
-<2> This `subscriberContext` impacts the main sequence's `Context`.
+<1> This `subscriberContext` does not impact anything outside of its `flatMap`. 这个“ subscriberContext”不会影响其“ flatMap”之外的任何内容。
+<2> This `subscriberContext` impacts the main sequence's `Context`. 这个“ subscriberContext”会影响主序列的“ Context”。
 ====
 
 In the preceding example, the final emitted value is `"Hello World Reactor"` and not "Hello
@@ -994,13 +1263,21 @@ the inner sequence of the second `flatMap`. As a consequence, it is not visible 
 through the main sequence and the first `flatMap` does not see it. Propagation and immutability
 isolate the `Context` in operators that create intermediate inner sequences such as `flatMap`.
 
+在前面的示例中，最终发出的值为“Hello World Reactor“，而不是” Hello Reactor World”，因为写有“ Reactor”的“ subscriberContext”是作为第二个“flatMap”的内部序列的一部分。
+结果，它不可见或传播通过主序列，第一个`flatMap`看不到它。 传播和不变性将“Context”隔离在创建中间内部序列（例如“ flatMap”）的运算符中。
+
 === Full Example
 
 Now we can consider a more real life example of a library reading information from the `Context`:
 a reactive HTTP client that takes a `Mono<String>` as the source of data for a `PUT` but
 also looks for a particular Context key to add a correlation ID to the request's headers.
 
+现在，我们可以考虑一个更现实的例子，该图书馆从中读取信息Context：
+一个反应性HTTP客户端，该客户端将 Mono<String>作为的数据源，PUT同时还寻找一个特定的Context键，以将相关ID添加到请求的标头中。
+
 From the user perspective, it is called as follows:
+
+从用户的角度来看，它称为：
 
 ====
 [source,java]
@@ -1010,6 +1287,8 @@ doPut("www.example.com", Mono.just("Walter"))
 ====
 
 In order to propagate a correlation ID, it would be called as follows:
+
+为了传播相关性ID，将其称为如下：
 
 ====
 [source,java]
@@ -1025,8 +1304,14 @@ a `Mono<Tuple2<Integer, String>>` (a simplistic representation of an HTTP respon
 returned by the HTTP client library. So it effectively passes information from the
 user code to the library code.
 
+如前面的片段所示，用户代码使用`subscriberContext`进行填充具有“ HTTP_CORRELATION_ID”键值对的“Context”。 操作员的上游是
+一个Mono <Tuple2 <Integer，String >>`（HTTP响应的简单表示）
+由HTTP客户端库返回。 因此它有效地传递了来自用户代码到库代码。
+
 The following example shows mock code from the library's perspective that reads the
 context and "`augments the request`" if it can find the correlation ID:
+
+以下示例从库的角度显示了模拟代码，该代码读取了context和“`augments the request`”（如果可以找到相关ID）：
 
 ====
 [source,java]
@@ -1051,9 +1336,9 @@ Mono<Tuple2<Integer, String>> doPut(String url, Mono<String> data) {
 			.map(msg -> Tuples.of(200, msg));
 }
 ----
-<1> Materialize the `Context` through `Mono.subscriberContext()`.
-<2> Extract a value for a the correlation ID key, as an `Optional`.
-<3> If the key was present in the context, use the correlation ID as a header.
+<1> Materialize the `Context` through `Mono.subscriberContext()`. 通过 Mono.subscriberContext() 实现Context
+<2> Extract a value for a the correlation ID key, as an `Optional`. 提取相关性ID密钥的值，作为Optional。
+<3> If the key was present in the context, use the correlation ID as a header. 	如果密钥存在于context中，则将相关性ID用作标题。
 ====
 
 The library snippet zips the data `Mono` with
@@ -1061,12 +1346,19 @@ The library snippet zips the data `Mono` with
 context contains the `HTTP_CORRELATION_ID` entry from downstream (as it is on the direct
 path to the subscriber).
 
+库片段将数据`Mono`压缩为`Mono.subscriberContext（）`。 这给库一个`Tuple2 <String，Context>`，并且
+上下文包含来自下游的HTTP_CORRELATION_ID条目（因为它位于直接订户的路径）。
+
 The library code then uses `map` to extract an `Optional<String>` for that key, and, if
 the entry is present, it uses the passed correlation ID as a `X-Correlation-ID` header.
 That last part is simulated by the `handle`.
 
+然后，库代码map用于提取Optional<String>该密钥的，并且，如果存在该条目，它将使用传递的相关ID作为X-Correlation-ID标头。最后一部分由进行模拟handle。
+
 The whole test that validates the library code used the correlation ID can be written as
 follows:
+
+验证使用相关ID的库代码的整个测试可以编写如下：
 
 ====
 [source,java]
@@ -1092,7 +1384,12 @@ In very specific cases, your application may deal with types that necessitate so
 This is an advanced scenario -- for, example when you have reference-counted objects or when you deal with off-heap objects.
 Netty's `ByteBuf` is a prime example of both.
 
+在非常特定的情况下，您的应用程序可能会处理不再需要使用某种形式的清理的类型。这是一种高级方案，例如，当您有引用计数的对象或处理堆外对象时。Netty ByteBuf是这两者的典型例子。
+
 In order to ensure proper cleanup of such objects, you need to account for it on a `Flux`-by-`Flux` basis, as well as in several of the global hooks (see <<hooks>>):
+
+为了确保正确清理此类对象，您需要基于“ Flux”（逐个）“ Flux”以及多个全局挂钩（see <<hooks>>）进行考虑：
+
 
  * The `doOnDiscard` `Flux`/`Mono` operator
  * The `onOperatorError` hook
@@ -1101,12 +1398,21 @@ In order to ensure proper cleanup of such objects, you need to account for it on
 
 This is needed because each hook is made with a specific subset of cleanup in mind, and users might want (for example) to implement specific error-handling logic in addition to cleanup logic within `onOperatorError`.
 
+之所以需要这样做，是因为每个挂钩都是根据特定的清理子集来进行的，并且用户可能希望（例如）除中的清理逻辑之外还实现特定的错误处理逻辑onOperatorError。
+
 Note that some operators are less adapted to dealing with objects that need cleanup.
 For example, `bufferWhen` can introduce overlapping buffers, and that means that the discard "`local hook`" we used earlier might see a first buffer as being discarded and cleanup an element in it that is in a second buffer, where it is still valid.
+
+请注意，某些运算符不太适合处理需要清除的对象。
+例如，“ bufferWhen”可以引入重叠的缓冲区，这意味着我们前面使用的丢弃“ local hook”可能会看到第一个缓冲区被丢弃，并清理其中第二个缓冲区中的元素。 仍然有效。
 
 IMPORTANT: For the purpose of cleaning up, *all these hooks MUST be IDEMPOTENT*.
 They might on some occasions get applied several times to the same object.
 Unlike the `doOnDiscard` operator, which performs a class-level `instanceOf` check, the global hooks are also dealing with instances that can be any `Object`. It is up to the user's implementation to distinguish between which instances need cleanup and which do not.
+
+IMPORTANT: 为了清理起见，*所有这些钩子必须是确定的*。
+在某些情况下，它们可能会多次应用于同一对象。
+与执行类级别的instanceOf检查的doOnDiscard运算符不同，全局挂钩也处理可以是任何Object的实例。 由用户的实现来区分哪些实例需要清除，哪些不需要。
 
 
 === The `doOnDiscard` Operator or Local Hook
@@ -1114,30 +1420,51 @@ Unlike the `doOnDiscard` operator, which performs a class-level `instanceOf` che
 This hook has been specifically put in place for cleanup of objects that would otherwise never be exposed to user code.
 It is intended as a cleanup hook for flows that operate under normal circumstances (not malformed sources that push too many items, which is covered by `onNextDropped`).
 
+该挂钩专门用于清理对象，否则这些对象将永远不会暴露给用户代码。
+它旨在用作在正常情况下运行的流的清理钩子（不是格式错误的源，用于推送过多的项目，这由`onNextDropped`覆盖）。
+
 It is local, in the sense that it is activated through an operator and applies only to a given `Flux` or `Mono`.
+
+它是本地的，从某种意义上说，它是通过激活操作符，并且仅适用于给定的Flux或Mono。
 
 Obvious cases include operators that filter elements from upstream.
 These elements never reach the next operator (or final subscriber), but this is part of the normal path of execution.
 As such, they are passed to the `doOnDiscard` hook.
 Examples of when you might use the `doOnDiscard` hook include the following:
 
-* `filter`: Items that do not match the filter are considered to be "`discarded.`"
-* `skip`: Skipped items are discarded.
-* `buffer(maxSize, skip)` with `maxSize < skip`: A "`dropping buffer`" -- items in between buffers are discarded.
+明显的情况包括从上游过滤元素的运算符。这些元素永远不会到达下一个运算符（或最终订户），但这是正常执行路径的一部分。
+这样，它们就传递给了doOnDiscard钩子。何时使用doOnDiscard挂钩的示例包括：
+
+* `filter`: Items that do not match the filter are considered to be "`discarded.`" 与过滤器不匹配的项目被视为“已丢弃”。
+* `skip`: Skipped items are discarded. 跳过的项目将被丢弃
+* `buffer(maxSize, skip)` with `maxSize < skip`: A "`dropping buffer`" -- items in between buffers are discarded. 一个“丢弃缓冲区” —缓冲区之间的项目被丢弃。
 
 But `doOnDiscard` is not limited to filtering operators, and is also used by operators that internally queue data for backpressure purposes.
 More specifically, most of the time, this is important during cancellation. An operator that prefetches data from its source and later drains to its subscriber upon demand could have un-emitted data when it gets cancelled.
 Such operators use the `doOnDiscard` hook during cancellation to clear up their internal backpressure `Queue`.
 
+但是`doOnDiscard`不仅限于过滤运算符，还被内部排队数据以用于反压目的的运算符使用。
+更具体地说，在大多数情况下，这在取消期间很重要。 从其源中预取数据，然后根据需要排到其订阅者上的操作符在取消数据时可能会收到未发射的数据。
+这样的操作员在取消操作期间使用`doOnDiscard`挂钩来清除其内部背压`Queue'。
+
+
 WARNING: Each call to `doOnDiscard(Class, Consumer)` is additive with the others, to the extent that it is visible and used by only operators upstream of it.
+
+WARNING: 每次对doOnDiscard（Class，Consumer）的调用都会与其他调用相加，以使其只能被其上游的操作员看到并使用。
 
 === The `onOperatorError` hook
 
 The `onOperatorError` hook is intended to modify errors in a transverse manner (similar to an AOP catch-and-rethrow).
 
+onOperatorError钩子旨在以横向方式修改错误（类似于AOP的捕捉和抛出）。
+
 When the error happens during the processing of an `onNext` signal, the element that was being emitted is passed to `onOperatorError`.
 
+当在处理onNext信号期间发生错误时，将要发出的元素传递给onOperatorError。
+
 If that type of element needs cleanup, you need to implement it in the `onOperatorError` hook, possibly on top of error-rewriting code.
+
+如果需要清除该类型的元素，则需要在onOperatorError钩子中实现它，可能在错误重写代码的顶部。
 
 === The `onNextDropped` Hook
 
@@ -1145,15 +1472,24 @@ With malformed `Publishers`, there could be cases where an operator receives an 
 In such cases, the unexpected element is "`dropped`" -- that is, passed to the `onNextDropped` hook.
 If you have types that need cleanup, you must detect these in the `onNextDropped` hook and implement cleanup code there as well.
 
+对于格式错误的发布者，在某些情况下，操作员可能会在元素预期没有元素时收到该元素（通常是在收到onError或onComplete信号之后）。
+在这种情况下，意外元素将被“丢弃”，即传递给onNextDropped挂钩。 如果您有需要清除的类型，则必须在onNextDropped挂钩中检测到它们，并在其中也执行清除代码。
+
 === Operator-specific Handlers
 
 Some operators that deal with buffers or collect values as part of their operations have specific handlers for cases where collected data is not propagated downstream.
 If you use such operators with the type(s) that need cleanup, you need to perform cleanup in these handlers.
 
+一些处理缓冲区或在其操作过程中收集值的运算符具有特定的处理程序，用于收集的数据不向下游传播的情况。
+如果将此类运算符与需要清除的类型一起使用，则需要在这些处理程序中执行清除。
+
 For example, `distinct` has such a callback that is invoked when the operator terminates (or is cancelled) in order to clear the collection it uses to judge whether an element is distinct or not.
 By default, the collection is a `HashSet`, and the cleanup callback is a `HashSet::clear`.
 However, if you deal with reference-counted objects, you might want to change that to a more involved handler that would `release` each element in the set before calling `clear()` on it.
 
+例如，distinct具有这样的回调，当操作员终止（或取消）时，将调用该回调，以清除其用于判断元素是否与众不同的集合。
+默认情况下，集合是HashSet，清理回调是HashSet :: clear。
+但是，如果处理引用计数的对象，则可能需要将其更改为涉及更多的处理程序，该处理程序在调用clear（）之前会释放集合中的每个元素。
 
 [[null-safety]]
 == Null Safety
@@ -1162,15 +1498,23 @@ Although Java does not allow expressing null-safety with its type system, Reacto
 now provides annotations to declare nullability of APIs, similar to those provided by
 Spring Framework 5.
 
+尽管Java不允许使用其类型系统表示空安全性，但是Reactor现在提供了注释来声明API的空性，类似于Spring Framework 5提供的注释。
+
 Reactor uses these annotations, but they can also be used in any Reactor-based
 Java project to declare null-safe APIs. Nullability of the types used inside method bodies
 is outside of the scope of this feature.
+
+Reactor使用这些注释，但也可以在任何基于Reactor的Java项目中使用它们来声明空安全的API。
+方法主体内使用的类型的可空性超出了此功能的范围。
 
 These annotations are meta-annotated with https://jcp.org/en/jsr/detail?id=305[JSR 305]
 annotations (a dormant JSR that is supported by tools such as IntelliJ IDEA) to provide
 useful warnings to Java developers related to null-safety in order to avoid
 `NullPointerException` at runtime. JSR 305 meta-annotations let tooling vendors
 provide null safety support in a generic way, without having to hard-code support for Reactor annotations.
+
+这些注释用JSR 305注释（由IntelliJ IDEA之类的工具支持的休眠JSR）进行元注释，以向Java开发人员提供有关空安全性的有用警告，以避免在运行时出现NullPointerException。
+JSR 305元注释使工具供应商能够以通用方式提供空安全支持，而不必对Reactor注释进行硬编码支持。
 
 NOTE: It is not necessary nor recommended with Kotlin 1.1.5+ to have a dependency on JSR 305 in
 your project classpath.
@@ -1189,6 +1533,11 @@ Indicates that a parameter, return value, or field can be `null`.
 * https://projectreactor.io/docs/core/release/api/reactor/util/annotation/NonNullApi.html[`@NonNullApi`]:
 Package-level annotation that indicates non-null is the default behavior for
 parameters and return values.
+
+* 指示特定的参数，返回值或字段不能为null。 （在@NonNullApi适用的参数和返回值上不需要）。
+* 表示参数，返回值或字段可以为null。
+* 指示非空的程序包级注释是参数和返回值的默认行为。
+
 
 NOTE: Nullability for generic type arguments, variable arguments, and array elements is not yet supported.
 See https://github.com/reactor/reactor-core/issues/878[issue #878] for up-to-date

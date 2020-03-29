@@ -351,11 +351,17 @@ The `handle` method is a bit different: it is an instance method, meaning that
 it is chained on an existing source (as are the common operators). It is present
 in both `Mono` and `Flux`.
 
+handle方法有点不同：它是一个实例方法，这意味着它被链接在一个现有的源上（常见的运算符也是如此）。它存在于Mono和中Flux。
+
 It is close to `generate`, in the sense that it uses a `SynchronousSink` and
 only allows one-by-one emissions. However, `handle` can be used to generate an
 arbitrary value out of each source element, possibly skipping some elements. In
 this way, it can serve as a combination of `map` and `filter`. The signature of
 handle is as follows:
+
+它接近generate，从某种意义上说，它使用 SynchronousSink 且仅允许一对一的发射。
+但是，handle可用于从每个源元素中生成任意值，可能会跳过某些元素。通过这种方式，它可以作为map和filter组合一样使用。
+handle的签名如下：
 
 ====
 [source,java]
@@ -368,8 +374,14 @@ Let's consider an example. The reactive streams specification disallows `null`
 values in a sequence. What if you want to perform a `map` but you want to use
 a preexisting method as the map function, and that method sometimes returns null?
 
+让我们考虑一个例子。反应性流规范不允许null值在序列中。如果要执行一个 map方法，但想使用一个预先存在的方法作为map函数，而该方法有时返回null怎么办？
+
+
+
 For instance, the following method can be applied safely to a source of
 integers:
+
+例如，以下方法可以安全地应用于整数源：
 
 ====
 [source,java]
@@ -386,7 +398,12 @@ public String alphabet(int letterNumber) {
 
 We can then use `handle` to remove any nulls:
 
+然后，我们可以使用handle删除任何空值：
+
 .Using `handle` for a "map and eliminate nulls" scenario
+
+handle用于“映射并消除空值”场景
+
 ====
 [source,java]
 ----
@@ -399,9 +416,9 @@ Flux<String> alphabet = Flux.just(-1, 30, 13, 9, 20)
 
 alphabet.subscribe(System.out::println);
 ----
-<1> Map to letters.
-<2> If the "map function" returns null....
-<3> Filter it out by not calling `sink.next`.
+<1> 映射到字母.
+<2> 如果“ map function”返回null
+<3> 通过不调用过滤掉它sink.next.
 ====
 
 Which will print out:
